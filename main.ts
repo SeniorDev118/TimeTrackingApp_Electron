@@ -9,14 +9,19 @@ serve = args.some(val => val === '--serve');
 function createWindow() {
 
   const electronScreen = screen;
-  const size = electronScreen.getPrimaryDisplay().workAreaSize;
+  // const size = electronScreen.getPrimaryDisplay().workAreaSize;
 
   // Create the browser window.
   win = new BrowserWindow({
-    x: 0,
-    y: 0,
-    width: size.width,
-    height: size.height
+    // x: 0,
+    // y: 0,
+    width: 1280,
+    height: 720,
+    center: true,
+    minWidth: 1024,
+    minHeight: 565
+    // width: size.width,
+    // height: size.height
   });
 
   if (serve) {
