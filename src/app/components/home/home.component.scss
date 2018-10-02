@@ -1,17 +1,67 @@
+
 .container {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: url(../../../assets/background.jpg) no-repeat center fixed;
-  -webkit-background-size: cover; /* pour anciens Chrome et Safari */
-  background-size: cover; /* version standardisée */
-
-  .title {
-    color: white;
-    margin:0;
-    padding:50px 20px;
-  }
-
-}
+  width: 500px;
+  text-align: center;
+  margin: 0 auto;
+  border: 2px solid #d7d7d7;
+  border-bottom: 0px;
+  margin-top: 20px;
+  font-family: sans-serif;
+ }
+ 
+ h1 {
+  text-align: center;
+  background-color: #330066;
+  padding: 30px 0px;
+  margin-top: 0px;
+  color: white;
+ }
+ 
+ .addItem {
+  position: relative;
+  padding-bottom: 0px;
+  height: 30px;
+    padding-bottom: 10px;
+ }
+ 
+ .addText {
+  width: 80%;
+  height: 30px;
+  padding: 5px;
+  font-size: 20px;
+ }
+ 
+ .addItem button {
+  height: 45px;
+  width: 50px;
+  padding: 5px;
+ }
+ 
+ ul {
+  list-style: none;
+  font-size: 20px;
+  color: #686868;
+  margin-left: -40px;
+  margin-bottom: 0px;
+ }
+ 
+ li {
+  border-bottom: 1px solid #bfbfbf;
+  background-color: #f2f2f2;
+  padding: 10px 0px;
+  margin-bottom: 5px;
+ }
+ 
+ span {
+  cursor: pointer;
+  position: relative;
+  float: right;
+  margin-right: 10px;
+ }
+ 
+ button {
+  background-color: #0099ff;
+  border-radius: 5px;
+  border: 0;
+  color: #fff;
+ }

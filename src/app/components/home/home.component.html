@@ -1,5 +1,11 @@
 <div class="container">
-  <h1 class="title">
-    {{ 'PAGES.HOME.TITLE' | translate }}
-  </h1>
+  <h1 class="title">Project Name</h1>
+  <input [(ngModel)] = "newItem" placeholder="Add Item" class="addText">
+  <button (click) = "pushItem()">Save</button>
+  <ul>
+    <li class="todo-item" *ngFor="let i of items; let ind = index">
+      {{ i }}
+      <span (click) = "removeItem(ind)">*</span>
+    </li>
+  </ul>
 </div>
