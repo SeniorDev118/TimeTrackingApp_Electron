@@ -1,5 +1,4 @@
 /* You can add global styles to this file, and also import other style files */
-
 *,
 *::after,
 *::before {
@@ -50,7 +49,7 @@ button:disabled {
   padding-bottom: 0;
   background-color: #5151ec;
   color: #fff;
-  font-size: 1.6rem;
+  font-size: 1.2rem;
 //   box-shadow: 9px 13px 7px 0px rgba(0, 0, 0, 0.4);
   border: 1px solid transparent;
   border-radius: 1.6rem;
@@ -62,7 +61,7 @@ button:disabled {
   width: 100%;
   flex-direction: column-reverse;
   align-items: center;
-  font-size: 3.2rem;
+  font-size: 2.2rem;
   margin-bottom: 0.6rem;
   align-self: center;
   margin-top: -2rem;
@@ -87,10 +86,12 @@ button:disabled {
   padding: 0.8rem;
   padding-left: 0;
   border: none;
-//   border-bottom: 1.5px solid rgba(255, 255, 255);
+  border-bottom-width: 1.5px;
+  border-bottom-color: white;
+  border-bottom-style: solid;
   background-color: #5151ec;
   color: #fff;
-  font-size: 1.8rem;
+  font-size: 1.3rem;
   width: 100%;
   outline: 0;
   transition: all 0.2s ease-in-out;
@@ -102,7 +103,7 @@ button:disabled {
 
 .control .form-error {
   color: #e53935;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   border-radius: 2px;
   padding: 0.8rem;
   margin-bottom: -2rem;
@@ -117,7 +118,7 @@ button:disabled {
   align-self: center;
   border: 1px solid transparent;
   border-radius: 8px;
-  font-size: 1.9rem;
+  font-size: 1.3rem;
   font-weight: bold;
   background-color: white;
   padding: 1rem 2.5rem;
