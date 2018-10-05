@@ -1,15 +1,16 @@
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, desktopCapturer } from 'electron';
 import * as path from 'path';
 import * as url from 'url';
-
-let win, serve;
+import * as fs from 'fs';
+let win, serve, size;
 const args = process.argv.slice(1);
 serve = args.some(val => val === '--serve');
 
 function createWindow() {
 
   const electronScreen = screen;
-  // const size = electronScreen.getPrimaryDisplay().workAreaSize;
+  size = electronScreen.getPrimaryDisplay().workAreaSize;
+  console.log('size: ', size);
 
   // Create the browser window.
   win = new BrowserWindow({
@@ -49,6 +50,7 @@ function createWindow() {
 
 }
 
+
 try {
 
   // This method will be called when Electron has finished
@@ -71,6 +73,20 @@ try {
     if (win === null) {
       createWindow();
     }
+  });
+
+  ipcMain.on('get-window-size', (event, arg) => {
+    event.sender.send('get-window-size-reply', size)
+  });
+
+  ipcMain.on('send-screenshot', (event, arg) => {
+    let base64Data = arg.replace(/^data:image\/png;base64,/, "");
+    fs.writeFile(path.join(__dirname, 'snips/image.png'), base64Data, 'base64', function(err) {
+      if (err) {
+        return event.sender.send('send-screenshot-reply', false);
+      }
+      return event.sender.send('send-screenshot-reply', true);
+    });
   });
 
 } catch (e) {

@@ -1,4 +1,7 @@
 /node_modules/
+/release/
+/dist/
+/snips/
 *.js
 *.json
 *.js.map

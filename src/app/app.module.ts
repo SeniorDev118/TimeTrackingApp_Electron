@@ -3,11 +3,10 @@ import 'reflect-metadata';
 import '../polyfills';
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-
-import { AppRoutingModule } from './app-routing.module';
+import { NgxElectronModule } from 'ngx-electron';
 
 // NG Translate
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
@@ -22,6 +21,12 @@ import { HomeComponent } from './components/home/home.component';
 import { LoginComponent } from './components/login/login.component';
 
 import { AngularFontAwesomeModule } from 'angular-font-awesome';
+import { AuthenticationService } from './components/_services/authentication.service';
+import { AlertComponent } from './components/_directives/alert/alert.component';
+import { AlertService } from './components/_services/alert.service';
+import { HeaderComponent } from './components/header/header.component';
+import { routing } from './app.routing';
+import { AuthGuard } from './components/_guards/auth.guard';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -33,13 +38,14 @@ export function HttpLoaderFactory(http: HttpClient) {
     AppComponent,
     HomeComponent,
     WebviewDirective,
-    LoginComponent
+    LoginComponent,
+    AlertComponent,
+    HeaderComponent
   ],
   imports: [
     BrowserModule,
-    FormsModule,
+    ReactiveFormsModule,
     HttpClientModule,
-    AppRoutingModule,
     AngularFontAwesomeModule,
     TranslateModule.forRoot({
       loader: {
@@ -47,9 +53,17 @@ export function HttpLoaderFactory(http: HttpClient) {
         useFactory: (HttpLoaderFactory),
         deps: [HttpClient]
       }
-    })
+    }),
+    routing,
+    FormsModule,
+    NgxElectronModule
   ],
-  providers: [ElectronService],
+  providers: [
+    ElectronService,
+    AuthenticationService,
+    AlertService,
+    AuthGuard
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
