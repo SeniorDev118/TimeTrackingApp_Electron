@@ -4,7 +4,7 @@
     align-items: center;
     flex-grow: 1;
 
-    .login-container {
+    .register-container {
         display: flex;
         justify-content: center;
         align-items: center;
@@ -13,6 +13,9 @@
         .wrapper {
             width: 420px;
             button {
+                width: 100%;
+            }
+            .btn {
                 width: 100%;
             }
         }

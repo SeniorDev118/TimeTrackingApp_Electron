@@ -1,0 +1,65 @@
+<div class="task-detail-container p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Task Detail</h2>
+    <a [routerLink]="['/home']">
+      <i class="fa fa-arrow-circle-left text-primary fa-lg" aria-hidden="true"></i>
+    </a>
+  </div>
+  <div class="screenshot-area">
+    <ngx-hm-carousel
+      show-num="auto"
+      align="left"
+      [infinite]="true"
+      class="link-container">
+      <section ngx-hm-carousel-container class="content">
+        <article class="item cursor-pointer t-al-c"
+          *ngFor="let item of items">
+          <div class="img"
+            [style.backgroundImage]="'url('+item.url+')'">
+          </div>
+        </article>
+      </section>
+      <ng-template #carouselPrev>
+        <div class="click-area">
+          <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        </div>
+      </ng-template>
+      <ng-template #carouselNext>
+        <div class="click-area">
+          <i class="fa fa-chevron-right" aria-hidden="true"></i>
+        </div>
+      </ng-template>
+    </ngx-hm-carousel>
+  </div>
+  <div class="detail-area mt-5">
+    <table class="table table-striped" [mfData]="data" #mf="mfDataTable" [mfRowsOnPage]="5">
+      <thead>
+      <tr>
+        <th>
+          <mfDefaultSorter by="name">Time</mfDefaultSorter>
+        </th>
+        <th>
+          <mfDefaultSorter by="email">Mouse Count</mfDefaultSorter>
+        </th>
+        <th>
+          <mfDefaultSorter by="age">Keyboard Count</mfDefaultSorter>
+        </th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let task of mf.data">
+        <td>{{task.time}}</td>
+        <td>{{task.mouseCount}}</td>
+        <td>{{task.keyboardCount}}</td>
+      </tr>
+      </tbody>
+      <tfoot>
+      <tr>
+        <td colspan="4">
+          <mfBootstrapPaginator [rowsOnPageSet]="[5,10,25]"></mfBootstrapPaginator>
+        </td>
+      </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>

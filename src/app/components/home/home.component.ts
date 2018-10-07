@@ -20,43 +20,71 @@ export class HomeComponent implements OnInit {
     private alertService: AlertService,
     private _electronService: ElectronService
   ) {
-    this.tasks = [
-      {
-        id: 1,
-        title: 'Angular 6',
-        time: 500,
-        status: 'stop'
-      },
-      {
-        id: 2,
-        title: 'React',
-        time: 200,
-        status: 'stop'
-      },
-      {
-        id: 3,
-        title: 'Node',
-        time: 300,
-        status: 'stop'
-      }
-    ];
+    this.tasks = [];
     this.isCreate = false;
     this.windowWidth = 0;
     this.windowHeight = 0;
 
     if(this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('get-window-size', 'ping');
+      this._electronService.ipcRenderer.send('get-fake-data', 'ping');
+
+      this._electronService.ipcRenderer.on('get-fake-data-reply', (event, arg) => {console.log('tasks: ', arg['data'])
+        if (arg['status']) {
+          // this.tasks = arg['data'];
+        }
+      });
+
+      this._electronService.ipcRenderer.on('create-fake-data-reply', (event, arg) => {
+        if (arg['status']) {
+          this.tasks = arg['data'];
+          this.alertService.success('Creating a task is successful!');
+        } else {
+          this.alertService.error('Creating a task is failed.');
+        }
+      });
+
+      this._electronService.ipcRenderer.on('update-fake-data-subscribe', (event, arg) => {
+        console.log(arg)
+        this.tasks = arg;
+      });
+
       this._electronService.ipcRenderer.on('get-window-size-reply', (event, arg) => {
         this.windowWidth = arg.width;
         this.windowHeight = arg.height;
       });
-      this._electronService.ipcRenderer.on('send-screenshot-reply', (event, arg) => {
+
+      this._electronService.ipcRenderer.on('build-screenshot-reply', (event, arg) => {
         console.log(arg)
+      });
+
+      this._electronService.ipcRenderer.on('take-screenshot', (event, arg) => {
+        this.buildScreenshot(arg);
       });
     }
   }
 
   ngOnInit() {
+    this.tasks = [
+      {
+        id: 1,
+        title: 'Angular',
+        time: 300,
+        status: 'stop'
+      },
+      {
+        id: 2,
+        title: 'React',
+        time: '200',
+        status: 'stop'
+      },
+      {
+        id: 3,
+        title: 'Node',
+        time: '200',
+        status: 'stop'
+      }
+    ];
   }
 
   onCreate() {
@@ -68,14 +96,13 @@ export class HomeComponent implements OnInit {
       this.alertService.error('Task name is required.');
       return;
     }
-
-    this.tasks.push({
+    
+    this._electronService.ipcRenderer.send('create-fake-data', {
       id: Math.floor(Math.random() * 100),
       title: this.newTaskName,
       time: 0,
       status: 'stop'
     });
-    this.alertService.success('Creating a task is successful!');
     this.newTaskName = '';
     this.isCreate = false;
   }
@@ -84,12 +111,30 @@ export class HomeComponent implements OnInit {
     this.isCreate = false;
   }
 
+  onStopScreenshot(taskId: number) {
+    if(this._electronService.isElectronApp) {
+      this._electronService.ipcRenderer.send('stop-screenshot', {
+        taskId: taskId,
+        intervalSeconds: 1 * 60 // 10 mins
+      });
+    }
+  }
+
   onStartScreenshot(taskId: number) {
-    console.log(taskId)
-    
+    if(this._electronService.isElectronApp) {
+      this._electronService.ipcRenderer.send('start-screenshot', {
+        taskId: taskId
+      });
+    }
+  }
+
+  buildScreenshot(taskId: number) {
     if(this._electronService.isElectronApp) {
       this.fullscreenScreenshot((base64data) => {
-        this._electronService.ipcRenderer.send('send-screenshot', base64data);
+        this._electronService.ipcRenderer.send('build-screenshot', {
+          data: base64data,
+          taskId: taskId
+        });
       },'image/png');
     }
   }
