@@ -22,9 +22,9 @@
   <div class="tasks-container">
     <ul class="list-group">
       <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let task of tasks; let ind = index">
-        <a [routerLink]="['/task_detail/1']">{{ task?.title }}</a>
+        <a [routerLink]="['/task_detail/' + task.id]">{{ task?.title }}</a>
         <div class="d-flex justify-content-between align-items-center">
-          <div class="mr-4">{{ task?.time }}</div>
+          <div class="mr-4">{{ task?.time | timeConvert}}</div>
           <div>
             <a *ngIf="task.status === 'stop'; else playEle" (click)="onStartScreenshot(task.id)">
               <i class="fa fa-play-circle-o" aria-hidden="true"></i>

@@ -1,4 +1,4 @@
-import { Component, OnInit, Output } from '@angular/core';
+import { Component, OnInit, Output, OnDestroy } from '@angular/core';
 import { EventEmitter } from 'electron';
 import { AlertService } from '../_services/alert.service';
 import { ElectronService } from 'ngx-electron';
@@ -8,7 +8,7 @@ import { ElectronService } from 'ngx-electron';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   tasks: Object[];
   isCreate: boolean;
   newTaskName: string;
@@ -28,10 +28,12 @@ export class HomeComponent implements OnInit {
     if(this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('get-window-size', 'ping');
       this._electronService.ipcRenderer.send('get-fake-data', 'ping');
+      this._electronService.ipcRenderer.send('take-screenshot', 'ping');
+      this._electronService.ipcRenderer.send('update-fake-data-subscribe', 'ping');
 
-      this._electronService.ipcRenderer.on('get-fake-data-reply', (event, arg) => {console.log('tasks: ', arg['data'])
+      this._electronService.ipcRenderer.on('get-fake-data-reply', (event, arg) => {console.log('tasks in home: ', arg['data'])
         if (arg['status']) {
-          // this.tasks = arg['data'];
+          this.tasks = arg['data'];
         }
       });
 
@@ -44,47 +46,62 @@ export class HomeComponent implements OnInit {
         }
       });
 
-      this._electronService.ipcRenderer.on('update-fake-data-subscribe', (event, arg) => {
-        console.log(arg)
-        this.tasks = arg;
-      });
-
       this._electronService.ipcRenderer.on('get-window-size-reply', (event, arg) => {
-        this.windowWidth = arg.width;
-        this.windowHeight = arg.height;
+        let standardWidth = 480;
+        this.windowWidth = standardWidth;
+        this.windowHeight = arg.height * standardWidth / arg.width;
       });
 
       this._electronService.ipcRenderer.on('build-screenshot-reply', (event, arg) => {
         console.log(arg)
       });
 
-      this._electronService.ipcRenderer.on('take-screenshot', (event, arg) => {
+      this._electronService.ipcRenderer.on('start-screenshot-reply', (event, arg) => {
+        console.log(arg);
+      });
+
+      this._electronService.ipcRenderer.on('update-fake-data-subscribe-reply', (event, arg) => {
+        console.log('update fake data: ', arg);
+        this.tasks = arg;
+      });
+
+      this._electronService.ipcRenderer.on('take-screenshot-reply', (event, arg) => {console.log('screenshot');
         this.buildScreenshot(arg);
       });
     }
   }
 
   ngOnInit() {
-    this.tasks = [
-      {
-        id: 1,
-        title: 'Angular',
-        time: 300,
-        status: 'stop'
-      },
-      {
-        id: 2,
-        title: 'React',
-        time: '200',
-        status: 'stop'
-      },
-      {
-        id: 3,
-        title: 'Node',
-        time: '200',
-        status: 'stop'
-      }
-    ];
+    // this.tasks = [
+    //   {
+    //     id: 1,
+    //     title: 'Angular',
+    //     time: 300,
+    //     status: 'stop'
+    //   },
+    //   {
+    //     id: 2,
+    //     title: 'React',
+    //     time: '200',
+    //     status: 'stop'
+    //   },
+    //   {
+    //     id: 3,
+    //     title: 'Node',
+    //     time: '200',
+    //     status: 'stop'
+    //   }
+    // ];
+  }
+
+  ngOnDestroy() {
+    this._electronService.ipcRenderer.removeAllListeners('get-fake-data-reply');
+    this._electronService.ipcRenderer.removeAllListeners('create-fake-data-reply');
+    this._electronService.ipcRenderer.removeAllListeners('get-window-size-reply');
+    this._electronService.ipcRenderer.removeAllListeners('build-screenshot-reply');
+    this._electronService.ipcRenderer.removeAllListeners('start-screenshot-reply');
+    this._electronService.ipcRenderer.removeAllListeners('update-fake-data-subscribe-reply');
+    this._electronService.ipcRenderer.removeAllListeners('take-screenshot-reply');
   }
 
   onCreate() {

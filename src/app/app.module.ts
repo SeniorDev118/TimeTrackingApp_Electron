@@ -32,6 +32,7 @@ import { routing } from './app.routing';
 import { AuthGuard } from './components/_guards/auth.guard';
 import { TaskDetailComponent } from './components/task-detail/task-detail.component';
 import { RegisterComponent } from './components/register/register.component';
+import { TimeConvertPipe } from './components/_pipes/time-convert.pipe';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -47,7 +48,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     AlertComponent,
     HeaderComponent,
     TaskDetailComponent,
-    RegisterComponent
+    RegisterComponent,
+    TimeConvertPipe
   ],
   imports: [
     BrowserModule,

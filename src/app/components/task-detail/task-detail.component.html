@@ -7,16 +7,18 @@
   </div>
   <div class="screenshot-area">
     <ngx-hm-carousel
+      *ngIf="screens.length>0; else noScreenEle"
       show-num="auto"
       align="left"
       [infinite]="true"
       class="link-container">
       <section ngx-hm-carousel-container class="content">
         <article class="item cursor-pointer t-al-c"
-          *ngFor="let item of items">
+          *ngFor="let screen of screens">
           <div class="img"
-            [style.backgroundImage]="'url('+item.url+')'">
+            [style.backgroundImage]="'url('+screen.url+')'">
           </div>
+          <div class="title text-center pt-1">{{screen?.title}}</div>
         </article>
       </section>
       <ng-template #carouselPrev>
@@ -30,9 +32,13 @@
         </div>
       </ng-template>
     </ngx-hm-carousel>
+
+    <ng-template #noScreenEle>
+      <div class="alert alert-warning">No Screenshots</div>
+    </ng-template>
   </div>
   <div class="detail-area mt-5">
-    <table class="table table-striped" [mfData]="data" #mf="mfDataTable" [mfRowsOnPage]="5">
+    <table class="table table-striped" [mfData]="timeLogs" #mf="mfDataTable" [mfRowsOnPage]="5" *ngIf="timeLogs.length > 0; else noLogEle">
       <thead>
       <tr>
         <th>
@@ -61,5 +67,8 @@
       </tr>
       </tfoot>
     </table>
+    <ng-template #noLogEle>
+      <div class="alert alert-warning">No Logs</div>
+    </ng-template>
   </div>
 </div>

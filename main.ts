@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import { CronJob } from 'cron';
 let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandler, cronjobHandler, currentTaskId;
 let readedFakeData, previousTimestamp;
+let fakeDataSubscribeEvent, takeScreenshotEvent;
+let screenshotUrls = [];
 const args = process.argv.slice(1);
 isTrack = false;
 keyboardCount = 0;
@@ -18,16 +20,15 @@ function createWindow() {
 
   const electronScreen = screen;
   size = electronScreen.getPrimaryDisplay().workAreaSize;
-  console.log('size: ', size);
 
   // Create the browser window.
   win = new BrowserWindow({
     // x: 0,
     // y: 0,
-    // width: 1280,
-    // height: 720,
-    width: 580,
+    width: 1280,
     height: 720,
+    // width: 580,
+    // height: 720,
     center: true,
     minWidth: 1024,
     minHeight: 565
@@ -60,7 +61,7 @@ function createWindow() {
 
 }
 
-function writeMouseAndKeyboardCounts(timestamp) {
+function updateTracks(timestamp, isForceClose = false) {
   if (!fs.existsSync(path.join(__dirname, 'data'))) {
     fs.mkdirSync(path.join(__dirname, 'data'));
   }
@@ -68,16 +69,34 @@ function writeMouseAndKeyboardCounts(timestamp) {
   let jsonFilePath = path.join(__dirname, 'data/data.json');
   let timeDistance = Math.floor((timestamp - previousTimestamp) / 1000);
   previousTimestamp = timestamp;
-  if (timeDistance > 57) {
-    timeDistance = 60;
+
+  if (!isForceClose) {
+    if (timeDistance > 57) {
+      timeDistance = 60;
+      takeScreenShots(currentTaskId, 60 * 1000);
+    } else {
+      takeScreenShots(currentTaskId, 60 * 1000, false);
+    }
+  } else {
+    takeScreenShots(currentTaskId, 60 * 1000, false);
   }
 
+  // update time, mouse count and keyboard count
   fs.readFile(jsonFilePath, (err, data) => {  
-    if (err) throw err;
+    if (err) {
+      if (isForceClose) {
+        clearData();
+      }
+      console.log('File opening Error');
+      return;
+    }
     let res = JSON.parse(data.toString());
     if (res['data'] && res['data'].length > 0) {
       for (let index = 0; index < res['data'].length; index ++) {
         if (res['data'][index]['id'] === currentTaskId) {
+          if (isForceClose) {
+            res['data'][index]['status'] = 'stop';
+          }
           if (!res['data'][index]['timeLogs']) {
             res['data'][index]['timeLogs'] = {};
           }
@@ -86,37 +105,77 @@ function writeMouseAndKeyboardCounts(timestamp) {
             keyboardCount: keyboardCount,
             mouseCount: mouseCount
           };
+          
+          if (!res['data'][index]['screens']) {
+            res['data'][index]['screens'] = [];
+          }
+
+          if (screenshotUrls.length > 0) {
+            res['data'][index]['screens'] = res['data'][index]['screens'].concat(screenshotUrls);
+          }
         }
       }
     }
     let json = JSON.stringify(res); //convert it back to json
     fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
       if (err) {
+        if (isForceClose) {
+          clearData();
+        }
         console.log('Writing in data.json is fail');
       }
       console.log('Success to write in data.json');
-      ipcMain.emit('update-fake-data-subscribe', res['data']);
-      // ipcMain.send('update-fake-data-subscribe', res['data'])
+      fakeDataSubscribeEvent.sender.send('update-fake-data-subscribe-reply', res['data']);
+      screenshotUrls = [];
+      if (isForceClose) {
+        clearData();
+      }
     });
   });
 }
 
-function generateEvent(event, taskId, during) {
-  var d = new Date();
+function takeScreenShots(taskId, during, isLoop = true) {
+  if (!isLoop) {
+    takeScreenshotEvent.sender.send('take-screenshot-reply', taskId);
+    return;
+  }
   // take 3 screenshot in random
   for (let index = 0; index < 3; index ++) {
     let time = Math.random() * during;
     setTimeout(() => {
-      event.sender.send('take-screenshot', taskId); 
+      takeScreenshotEvent.sender.send('take-screenshot-reply', taskId); 
     }, time);
   }
 }
 
-// set interval (during is seconds)
-function startTimer(event, during, taskId) {
-  timerHandler = setInterval(() => {
-    generateEvent(event, taskId, during);
-  }, during);
+function changeTaskStatus(status) {
+  if (!fs.existsSync(path.join(__dirname, 'data'))) {
+    fs.mkdirSync(path.join(__dirname, 'data'));
+  }
+  let jsonFilePath = path.join(__dirname, 'data/data.json');
+  fs.readFile(jsonFilePath, (err, data) => {
+    if (err) {
+      console.log('Opening a file is failed');
+      return;
+    }
+    let res = JSON.parse(data.toString());
+    if (res['data'] && res['data'].length > 0) {
+      for (let index = 0; index < res['data'].length; index ++) {
+        if (res['data'][index]['id'] === currentTaskId) {
+          res['data'][index]['status'] = status;
+        }
+      }
+      let json = JSON.stringify(res); //convert it back to json
+      fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
+        if (err) {
+          console.log('Updating a status in data.json is failed');
+          return;
+        }
+        console.log('Success to update a status in data.json');
+        fakeDataSubscribeEvent.sender.send('update-fake-data-subscribe-reply', res['data']);
+      });
+    }
+  });
 }
 
 // stop interval
@@ -131,6 +190,10 @@ function clearData() {
   isTrack = false;
   mouseCount = 0;
   keyboardCount = 0;
+  previousTimestamp = 0;
+  screenshotUrls = [];
+  isTrack = false;
+  currentTaskId = -1;
   stopInterval();
 }
 
@@ -161,25 +224,34 @@ try {
   let cronjobHandler = new CronJob('0 */1 * * * *', function() {
     if (isTrack) {
       let timestamp = Date.now();
-      writeMouseAndKeyboardCounts(timestamp);
+      updateTracks(timestamp);
     }
   }, null, true, 'America/Los_Angeles');
 
   ipcMain.on('get-window-size', (event, arg) => {
-    event.sender.send('get-window-size-reply', size)
+    event.sender.send('get-window-size-reply', size);
+  });
+
+  ipcMain.on('update-fake-data-subscribe', (event, arg) => {
+    fakeDataSubscribeEvent = event;
+  });
+
+  ipcMain.on('take-screenshot', (event, arg) => {
+    takeScreenshotEvent = event;
   });
 
   ipcMain.on('get-fake-data', (event, arg) => {
     let jsonFilePath = path.join(__dirname, 'data/data.json');
     fs.readFile(jsonFilePath, (err, data) => {  
       if (err) {
+        readedFakeData = [];
         return event.sender.send('get-fake-data-reply', {
           status: false
         });
       }
 
       let res = JSON.parse(data.toString());
-      readedFakeData = res['data'];
+      readedFakeData = res['data'] ? res['data'] : [];
       return event.sender.send('get-fake-data-reply', {
         status: true,
         data: res['data']
@@ -190,11 +262,15 @@ try {
   ipcMain.on('create-fake-data', (event, arg) => {
     readedFakeData.push(arg);
     let backup = readedFakeData;
+    if (!fs.existsSync(path.join(__dirname, 'data'))) {
+      fs.mkdirSync(path.join(__dirname, 'data'));
+    }
+
     let json = JSON.stringify({data: readedFakeData}); //convert it back to json
     let jsonFilePath = path.join(__dirname, 'data/data.json');
     fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
       if (err) {
-        console.log('Updating in data.json is fail');
+        console.log('Updating in data.json is failed');
         readedFakeData = backup;
         return event.sender.send('create-fake-data-reply', {
           status: false,
@@ -217,15 +293,22 @@ try {
     if (!fs.existsSync(path.join(__dirname, 'data/snips'))) {
       fs.mkdirSync(path.join(__dirname, 'data/snips'));
     }
-    fs.writeFile(path.join(__dirname, 'data/snips/image.png'), base64Data, 'base64', function(err) {
+    let timestamp = Date.now();
+    let imagePath = `data/snips/${timestamp}.png`;
+    fs.writeFile(path.join(__dirname, imagePath), base64Data, 'base64', function(err) {
       if (err) {
         return event.sender.send('build-screenshot-reply', {
           status: false
         });
       }
+      screenshotUrls.push({
+        timestamp: timestamp,
+        imagePath: imagePath
+      });
       return event.sender.send('build-screenshot-reply', {
         status: true,
-        taskId: taskId
+        taskId: taskId,
+        screenshotUrls: screenshotUrls
       });
     });
   });
@@ -236,12 +319,13 @@ try {
     currentTaskId = arg['taskId'];
     // startTimer(event, arg['intervalSeconds'] * 1000, arg['taskId']);
     previousTimestamp = Date.now();
-    event.sender.send('start-screenshot-reply', arg['taskId']);
+    
+    changeTaskStatus('start');
   });
 
   // stop to track
   ipcMain.on('stop-screenshot', (event, arg) => {
-    clearData();
+    updateTracks(Date.now(), true);
     event.sender.send('stop-screenshot-reply', arg['taskId'])
   });
 
