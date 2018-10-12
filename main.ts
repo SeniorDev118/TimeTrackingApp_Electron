@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain, ipcRenderer, Tray, Menu } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, Tray, Menu } from 'electron';
 import * as ioHook from 'iohook';
 import * as path from 'path';
 import * as url from 'url';
@@ -62,13 +62,13 @@ function createWindow() {
         }
       }
     },
-    {
-      label: 'Quit',
-      accelerator: 'Command+Q',
-      click: function() {
-        app.quit();
-      }
-    }
+    // {
+    //   label: 'Quit',
+    //   accelerator: 'Command+Q',
+    //   click: function() {
+    //     app.quit();
+    //   }
+    // }
   ]);
   tray.setToolTip('Time Tracker');
   tray.setContextMenu(contextMenu);
@@ -96,6 +96,7 @@ function createWindow() {
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
     win = null;
+    Destroy();
   });
 
 }
@@ -245,6 +246,24 @@ function clearData() {
   stopInterval();
 }
 
+function Destroy() {
+  if (ipcMain) {
+    ipcMain.removeAllListeners('get-window-size');
+    ipcMain.removeAllListeners('update-fakeData');
+    ipcMain.removeAllListeners('take-screenshot');
+    ipcMain.removeAllListeners('get-fake-data');
+    ipcMain.removeAllListeners('create-fake-data');
+    ipcMain.removeAllListeners('build-screenshot');
+    ipcMain.removeAllListeners('select-task');
+    ipcMain.removeAllListeners('start-screenshot');
+    ipcMain.removeAllListeners('stop-screenshot');
+  }
+
+  if (cronjobHandler) {
+    cronjobHandler.stop();
+  }
+}
+
 try {
 
   // This method will be called when Electron has finished
@@ -269,7 +288,8 @@ try {
     }
   });
 
-  let cronjobHandler = new CronJob('0 */1 * * * *', function() {
+  cronjobHandler = new CronJob('0 */1 * * * *', function() {
+    console.log('cronjob running:');
     if (isTrack) {
       let timestamp = Date.now();
       updateTracks(currentTaskId, timestamp);
@@ -409,7 +429,6 @@ try {
 
   // Register and start hook
   ioHook.start(false);
-  console.log('ipcRenderer, ', ipcRenderer);
 
 } catch (e) {console.log('error: ', e);
   // Catch Error
