@@ -21,8 +21,12 @@
   
   <div class="tasks-container">
     <ul class="list-group">
-      <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let task of tasks; let ind = index">
-        <a [routerLink]="['/task_detail/' + task.id]">{{ task?.title }}</a>
+      <li
+        class="list-group-item d-flex justify-content-between align-items-center"
+        *ngFor="let task of tasks; let ind = index" (click)="onSelectTask(task.id)"
+        [ngClass]="{'active': selectedTaskId === task.id}"
+      >
+        <div>{{ task?.title }}</div>
         <div class="d-flex justify-content-between align-items-center">
           <div class="mr-4">{{ task?.time | timeConvert}}</div>
           <div>

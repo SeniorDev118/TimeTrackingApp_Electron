@@ -24,7 +24,8 @@ export class AuthenticationService {
     if (email === 'test@gmail.com' && password === 'test1234') {
       localStorage.setItem('currentUser', JSON.stringify({
         email: email,
-        password: password
+        password: password,
+        token: 'token'
       }));
       return Promise.resolve();
     } else {

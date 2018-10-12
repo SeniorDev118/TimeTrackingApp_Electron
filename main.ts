@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain, ipcRenderer } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, ipcRenderer, Tray, Menu } from 'electron';
 import * as ioHook from 'iohook';
 import * as path from 'path';
 import * as url from 'url';
@@ -7,7 +7,9 @@ import { CronJob } from 'cron';
 let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandler, cronjobHandler, currentTaskId;
 let readedFakeData, previousTimestamp;
 let fakeDataSubscribeEvent, takeScreenshotEvent;
+let contextMenu;
 let screenshotUrls = [];
+const spanSeconds = 60;
 const args = process.argv.slice(1);
 isTrack = false;
 keyboardCount = 0;
@@ -35,6 +37,43 @@ function createWindow() {
     // width: size.width,
     // height: size.height
   });
+  const iconPath = path.join(__dirname, 'tray.png');
+
+  const tray = new Tray(iconPath)
+  contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Start',
+      click: function() {
+        if (currentTaskId >= 0) {
+          previousTimestamp = Date.now();
+          changeTaskStatus('start');
+          contextMenu.items[0].enabled = false;
+          contextMenu.items[1].enabled = true;
+        }
+      }
+    },
+    {
+      label: 'Stop',
+      click: function() {
+        if (currentTaskId >= 0) {
+          updateTracks(currentTaskId, Date.now(), true);
+          contextMenu.items[0].enabled = true;
+          contextMenu.items[1].enabled = false;
+        }
+      }
+    },
+    {
+      label: 'Quit',
+      accelerator: 'Command+Q',
+      click: function() {
+        app.quit();
+      }
+    }
+  ]);
+  tray.setToolTip('Time Tracker');
+  tray.setContextMenu(contextMenu);
+  contextMenu.items[0].enabled = false;
+  contextMenu.items[1].enabled = false;
 
   if (serve) {
     require('electron-reload')(__dirname, {
@@ -49,7 +88,7 @@ function createWindow() {
     }));
   }
 
-  // win.webContents.openDevTools();
+  win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -61,79 +100,88 @@ function createWindow() {
 
 }
 
-function updateTracks(timestamp, isForceClose = false) {
-  if (!fs.existsSync(path.join(__dirname, 'data'))) {
-    fs.mkdirSync(path.join(__dirname, 'data'));
-  }
-
-  let jsonFilePath = path.join(__dirname, 'data/data.json');
-  let timeDistance = Math.floor((timestamp - previousTimestamp) / 1000);
-  previousTimestamp = timestamp;
-
-  if (!isForceClose) {
-    if (timeDistance > 57) {
-      timeDistance = 60;
-      takeScreenShots(currentTaskId, 60 * 1000);
+function updateTracks(taskId, timestamp, isForceClose = false): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(path.join(__dirname, 'data'))) {
+      fs.mkdirSync(path.join(__dirname, 'data'));
+    }
+  
+    let jsonFilePath = path.join(__dirname, 'data/data.json');
+    let timeDistance = Math.floor((timestamp - previousTimestamp) / 1000);
+    previousTimestamp = timestamp;
+  
+    if (!isForceClose) {
+      if (timeDistance > 57) {
+        timeDistance = spanSeconds;
+        takeScreenShots(taskId, spanSeconds * 1000);
+      } else {
+        takeScreenShots(taskId, spanSeconds * 1000, false);
+      }
     } else {
-      takeScreenShots(currentTaskId, 60 * 1000, false);
+      takeScreenShots(taskId, spanSeconds * 1000, false);
     }
-  } else {
-    takeScreenShots(currentTaskId, 60 * 1000, false);
-  }
-
-  // update time, mouse count and keyboard count
-  fs.readFile(jsonFilePath, (err, data) => {  
-    if (err) {
-      if (isForceClose) {
-        clearData();
-      }
-      console.log('File opening Error');
-      return;
-    }
-    let res = JSON.parse(data.toString());
-    if (res['data'] && res['data'].length > 0) {
-      for (let index = 0; index < res['data'].length; index ++) {
-        if (res['data'][index]['id'] === currentTaskId) {
-          if (isForceClose) {
-            res['data'][index]['status'] = 'stop';
-          }
-          if (!res['data'][index]['timeLogs']) {
-            res['data'][index]['timeLogs'] = {};
-          }
-          res['data'][index]['time'] += timeDistance;
-          res['data'][index]['timeLogs'][timestamp] = {
-            keyboardCount: keyboardCount,
-            mouseCount: mouseCount
-          };
-          
-          if (!res['data'][index]['screens']) {
-            res['data'][index]['screens'] = [];
-          }
-
-          if (screenshotUrls.length > 0) {
-            res['data'][index]['screens'] = res['data'][index]['screens'].concat(screenshotUrls);
-          }
-        }
-      }
-    }
-    let json = JSON.stringify(res); //convert it back to json
-    fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
+  
+    // update time, mouse count and keyboard count
+    fs.readFile(jsonFilePath, (err, data) => {  
       if (err) {
         if (isForceClose) {
           clearData();
         }
-        console.log('Writing in data.json is fail');
+        console.log('Opening a file is failed.');
+        return reject('Opening a file is failed.');
       }
-      console.log('Success to write in data.json');
-      fakeDataSubscribeEvent.sender.send('update-fake-data-subscribe-reply', res['data']);
-      screenshotUrls = [];
-      if (isForceClose) {
-        clearData();
+      let res = JSON.parse(data.toString());
+      if (res['data'] && res['data'].length > 0) {
+        for (let index = 0; index < res['data'].length; index ++) {
+          if (res['data'][index]['id'] === currentTaskId) {
+            if (isForceClose) {
+              res['data'][index]['status'] = 'stop';
+            }
+            if (!res['data'][index]['timeLogs']) {
+              res['data'][index]['timeLogs'] = {};
+            }
+            res['data'][index]['time'] += timeDistance;
+            res['data'][index]['timeLogs'][timestamp] = {
+              keyboardCount: keyboardCount,
+              mouseCount: mouseCount
+            };
+            
+            if (!res['data'][index]['screens']) {
+              res['data'][index]['screens'] = [];
+            }
+  
+            if (screenshotUrls.length > 0) {
+              res['data'][index]['screens'] = res['data'][index]['screens'].concat(screenshotUrls);
+            }
+          }
+        }
       }
+      let json = JSON.stringify(res); //convert it back to json
+      fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
+        if (err) {
+          if (isForceClose) {
+            clearData();
+          }
+          console.log('Writing in data.json is failed');
+          return reject('Writing in data.json is failed.');
+        }
+        console.log('Success to write in data.json');
+        fakeDataSubscribeEvent.sender.send('update-fakeData-reply', res['data']);
+        screenshotUrls = [];
+        if (isForceClose) {
+          clearData();
+        }
+        return resolve();
+      });
     });
   });
 }
 
+/**
+ * take screenshots of desktop from UI
+ * @param during 
+ * @param isLoop 
+ */
 function takeScreenShots(taskId, during, isLoop = true) {
   if (!isLoop) {
     takeScreenshotEvent.sender.send('take-screenshot-reply', taskId);
@@ -172,7 +220,7 @@ function changeTaskStatus(status) {
           return;
         }
         console.log('Success to update a status in data.json');
-        fakeDataSubscribeEvent.sender.send('update-fake-data-subscribe-reply', res['data']);
+        fakeDataSubscribeEvent.sender.send('update-fakeData-reply', res['data']);
       });
     }
   });
@@ -224,7 +272,7 @@ try {
   let cronjobHandler = new CronJob('0 */1 * * * *', function() {
     if (isTrack) {
       let timestamp = Date.now();
-      updateTracks(timestamp);
+      updateTracks(currentTaskId, timestamp);
     }
   }, null, true, 'America/Los_Angeles');
 
@@ -232,7 +280,7 @@ try {
     event.sender.send('get-window-size-reply', size);
   });
 
-  ipcMain.on('update-fake-data-subscribe', (event, arg) => {
+  ipcMain.on('update-fakeData', (event, arg) => {
     fakeDataSubscribeEvent = event;
   });
 
@@ -313,20 +361,38 @@ try {
     });
   });
 
+  // selected a task
+  ipcMain.on('select-task', (event, arg) => {
+    currentTaskId = arg;
+    if (contextMenu) {
+      contextMenu.items[0].enabled = true;
+      contextMenu.items[1].enabled = false;
+      event.sender.send('select-task-reply', arg);
+    }
+  });
+
   // start to track
   ipcMain.on('start-screenshot', (event, arg) => {
     isTrack = true;
-    currentTaskId = arg['taskId'];
-    // startTimer(event, arg['intervalSeconds'] * 1000, arg['taskId']);
-    previousTimestamp = Date.now();
-    
-    changeTaskStatus('start');
+    if (currentTaskId !== -1 && currentTaskId !== arg) {
+      previousTimestamp = Date.now();
+      updateTracks(currentTaskId, Date.now(), true).then(() => {
+        currentTaskId = arg;
+        changeTaskStatus('start');
+      }).catch((error) => {
+        console.log(error);
+      });
+    } else {
+      previousTimestamp = Date.now();
+      currentTaskId = arg;
+      changeTaskStatus('start');
+    }
   });
 
   // stop to track
   ipcMain.on('stop-screenshot', (event, arg) => {
-    updateTracks(Date.now(), true);
-    event.sender.send('stop-screenshot-reply', arg['taskId'])
+    currentTaskId = arg;
+    updateTracks(currentTaskId, Date.now(), true);
   });
 
   ioHook.on('keydown', event => {

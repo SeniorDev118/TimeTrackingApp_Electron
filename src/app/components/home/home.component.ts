@@ -14,6 +14,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   newTaskName: string;
   windowWidth: number;
   windowHeight: number;
+  selectedTaskId: number;
 
 
   constructor(
@@ -24,14 +25,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isCreate = false;
     this.windowWidth = 0;
     this.windowHeight = 0;
+    this.selectedTaskId = -1;
 
     if(this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('get-window-size', 'ping');
       this._electronService.ipcRenderer.send('get-fake-data', 'ping');
       this._electronService.ipcRenderer.send('take-screenshot', 'ping');
-      this._electronService.ipcRenderer.send('update-fake-data-subscribe', 'ping');
+      this._electronService.ipcRenderer.send('update-fakeData', 'ping');
 
-      this._electronService.ipcRenderer.on('get-fake-data-reply', (event, arg) => {console.log('tasks in home: ', arg['data'])
+      this._electronService.ipcRenderer.on('get-fake-data-reply', (event, arg) => {
         if (arg['status']) {
           this.tasks = arg['data'];
         }
@@ -53,45 +55,25 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
 
       this._electronService.ipcRenderer.on('build-screenshot-reply', (event, arg) => {
-        console.log(arg)
+        console.log('build-screenshot:', arg);
       });
 
       this._electronService.ipcRenderer.on('start-screenshot-reply', (event, arg) => {
         console.log(arg);
       });
 
-      this._electronService.ipcRenderer.on('update-fake-data-subscribe-reply', (event, arg) => {
+      this._electronService.ipcRenderer.on('update-fakeData-reply', (event, arg) => {
         console.log('update fake data: ', arg);
         this.tasks = arg;
       });
 
-      this._electronService.ipcRenderer.on('take-screenshot-reply', (event, arg) => {console.log('screenshot');
-        this.buildScreenshot(arg);
+      this._electronService.ipcRenderer.on('take-screenshot-reply', (event, arg) => {
+        this.takecreenshot(arg);
       });
     }
   }
 
   ngOnInit() {
-    // this.tasks = [
-    //   {
-    //     id: 1,
-    //     title: 'Angular',
-    //     time: 300,
-    //     status: 'stop'
-    //   },
-    //   {
-    //     id: 2,
-    //     title: 'React',
-    //     time: '200',
-    //     status: 'stop'
-    //   },
-    //   {
-    //     id: 3,
-    //     title: 'Node',
-    //     time: '200',
-    //     status: 'stop'
-    //   }
-    // ];
   }
 
   ngOnDestroy() {
@@ -100,7 +82,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this._electronService.ipcRenderer.removeAllListeners('get-window-size-reply');
     this._electronService.ipcRenderer.removeAllListeners('build-screenshot-reply');
     this._electronService.ipcRenderer.removeAllListeners('start-screenshot-reply');
-    this._electronService.ipcRenderer.removeAllListeners('update-fake-data-subscribe-reply');
+    this._electronService.ipcRenderer.removeAllListeners('update-fakeData-reply');
     this._electronService.ipcRenderer.removeAllListeners('take-screenshot-reply');
   }
 
@@ -129,23 +111,30 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   onStopScreenshot(taskId: number) {
+    this.selectedTaskId = taskId;
     if(this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('stop-screenshot', {
-        taskId: taskId,
-        intervalSeconds: 1 * 60 // 10 mins
-      });
-    }
-  }
-
-  onStartScreenshot(taskId: number) {
-    if(this._electronService.isElectronApp) {
-      this._electronService.ipcRenderer.send('start-screenshot', {
         taskId: taskId
       });
     }
   }
 
-  buildScreenshot(taskId: number) {
+  onStartScreenshot(taskId: number) {
+    this.selectedTaskId = taskId;
+    if(this._electronService.isElectronApp) {
+      this._electronService.ipcRenderer.send('start-screenshot', taskId);
+    }
+  }
+
+  onSelectTask(taskId: number) {
+    this.selectedTaskId = taskId;
+    this._electronService.ipcRenderer.send('select-task', taskId);
+    this._electronService.ipcRenderer.once('select-task-reply', (event, arg) => {
+      this.alertService.success('The task is selected for tracking.');
+    });
+  }
+
+  takecreenshot(taskId: number) {
     if(this._electronService.isElectronApp) {
       this.fullscreenScreenshot((base64data) => {
         this._electronService.ipcRenderer.send('build-screenshot', {
@@ -216,9 +205,9 @@ export class HomeComponent implements OnInit, OnDestroy {
               mandatory: {
                 chromeMediaSource: 'desktop',
                 chromeMediaSourceId: sources[i].id,
-                minWidth: 1280,
+                minWidth: 600,
                 maxWidth: 4000,
-                minHeight: 720,
+                minHeight: 300,
                 maxHeight: 4000
               }
             }

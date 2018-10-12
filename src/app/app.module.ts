@@ -4,12 +4,9 @@ import '../polyfills';
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { DataTableModule } from 'angular-6-datatable';
 
-import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { HttpClientModule, HttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { NgxElectronModule } from 'ngx-electron';
-import { NgxHmCarouselModule } from 'ngx-hm-carousel';
-import 'hammerjs';
 
 // NG Translate
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
@@ -30,9 +27,9 @@ import { AlertService } from './components/_services/alert.service';
 import { HeaderComponent } from './components/header/header.component';
 import { routing } from './app.routing';
 import { AuthGuard } from './components/_guards/auth.guard';
-import { TaskDetailComponent } from './components/task-detail/task-detail.component';
-import { RegisterComponent } from './components/register/register.component';
 import { TimeConvertPipe } from './components/_pipes/time-convert.pipe';
+import { JwtInterceptorService } from './components/_services/jwt.interceptor.service';
+import { ErrorInterceptorService } from './components/_services/error.interceptor.service';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -47,8 +44,6 @@ export function HttpLoaderFactory(http: HttpClient) {
     LoginComponent,
     AlertComponent,
     HeaderComponent,
-    TaskDetailComponent,
-    RegisterComponent,
     TimeConvertPipe
   ],
   imports: [
@@ -65,15 +60,15 @@ export function HttpLoaderFactory(http: HttpClient) {
     }),
     routing,
     FormsModule,
-    NgxElectronModule,
-    DataTableModule,
-    NgxHmCarouselModule
+    NgxElectronModule
   ],
   providers: [
     ElectronService,
     AuthenticationService,
     AlertService,
-    AuthGuard
+    AuthGuard,
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptorService, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptorService, multi: true },
   ],
   bootstrap: [AppComponent]
 })
