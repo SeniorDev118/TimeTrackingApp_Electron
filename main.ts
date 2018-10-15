@@ -3,6 +3,7 @@ import * as ioHook from 'iohook';
 import * as path from 'path';
 import * as url from 'url';
 import * as fs from 'fs';
+import * as request from 'request';
 import { CronJob } from 'cron';
 let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandler, cronjobHandler, currentTaskId;
 let readedFakeData, previousTimestamp;
@@ -10,6 +11,7 @@ let fakeDataSubscribeEvent, takeScreenshotEvent;
 let contextMenu;
 let screenshotUrls = [];
 const spanSeconds = 60;
+const apiUrl = 'https://apps.appup.cloud';
 const args = process.argv.slice(1);
 isTrack = false;
 keyboardCount = 0;
@@ -39,41 +41,43 @@ function createWindow() {
   });
   const iconPath = path.join(__dirname, 'tray.png');
 
-  const tray = new Tray(iconPath)
-  contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Start',
-      click: function() {
-        if (currentTaskId >= 0) {
-          previousTimestamp = Date.now();
-          changeTaskStatus('start');
-          contextMenu.items[0].enabled = false;
-          contextMenu.items[1].enabled = true;
-        }
-      }
-    },
-    {
-      label: 'Stop',
-      click: function() {
-        if (currentTaskId >= 0) {
-          updateTracks(currentTaskId, Date.now(), true);
-          contextMenu.items[0].enabled = true;
-          contextMenu.items[1].enabled = false;
-        }
-      }
-    },
-    // {
-    //   label: 'Quit',
-    //   accelerator: 'Command+Q',
-    //   click: function() {
-    //     app.quit();
-    //   }
-    // }
-  ]);
-  tray.setToolTip('Time Tracker');
-  tray.setContextMenu(contextMenu);
-  contextMenu.items[0].enabled = false;
-  contextMenu.items[1].enabled = false;
+  // const tray = new Tray(iconPath)
+  // contextMenu = Menu.buildFromTemplate([
+  //   {
+  //     label: 'Start',
+  //     click: function() {
+  //       if (currentTaskId >= 0) {
+  //         previousTimestamp = Date.now();
+  //         changeTaskStatus('start');
+  //         contextMenu.items[0].enabled = false;
+  //         contextMenu.items[1].enabled = true;
+  //       }
+  //     }
+  //   },
+  //   {
+  //     label: 'Stop',
+  //     click: function() {
+  //       if (currentTaskId >= 0) {
+  //         updateTracks(currentTaskId, Date.now(), true);
+  //         contextMenu.items[0].enabled = true;
+  //         contextMenu.items[1].enabled = false;
+  //       }
+  //     }
+  //   },
+  //   // {
+  //   //   label: 'Quit',
+  //   //   accelerator: 'Command+Q',
+  //   //   click: function() {
+  //   //     app.quit();
+  //   //   }
+  //   // }
+  // ]);
+  // tray.setToolTip('Time Tracker');
+  // tray.setContextMenu(contextMenu);
+  // if (contextMenu) {
+  //   contextMenu.items[0].enabled = false;
+  //   contextMenu.items[1].enabled = false;
+  // }
 
   if (serve) {
     require('electron-reload')(__dirname, {
@@ -98,6 +102,66 @@ function createWindow() {
     win = null;
     Destroy();
   });
+
+}
+
+/**
+ * 
+ * @param url 
+ * @param method
+ * @param headers
+ * @param formData
+ */
+function httpCall(event, url, method, headers, formData = {}): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if (method === 'POST') {
+      request.post({
+        headers: headers,
+        url: `${apiUrl}/${url}`,
+        form: formData,
+        agentOptions: {
+          rejectUnauthorized: false
+        }
+      }, (err, resp, body) => {
+        console.log('--POST method---');
+        console.log('error:', err);
+        console.log(resp.headers);
+        console.log('statusCode: ', resp.statusCode);
+        if (!err && resp.statusCode === 200) {
+          return resolve({
+            resp: resp,
+            body: body
+          });
+        } else {
+          return reject();
+        }
+      });
+    } else if (method === 'GET') {
+      request.get({
+        headers: headers,
+        url: `${apiUrl}/${url}`,
+        agentOptions: {
+          rejectUnauthorized: false
+        }
+      }, (err, resp, body) => {
+        console.log('--Get method---');
+        console.log('error:', err);
+        console.log('statusCode: ', resp.statusCode);
+        console.log('body:', body);
+        if (!err && resp.statusCode === 200) {
+          return resolve({
+            resp: resp,
+            body: body
+          });
+        } else {
+          return reject();
+        }
+      });
+    }
+  });
+}
+
+function login() {
 
 }
 
@@ -264,6 +328,17 @@ function Destroy() {
   }
 }
 
+function parseCookies (rc) {
+  var list = {};
+
+  rc && rc.split(';').forEach(function( cookie ) {
+      var parts = cookie.split('=');
+      list[parts.shift().trim()] = decodeURI(parts.join('='));
+  });
+
+  return list;
+}
+
 try {
 
   // This method will be called when Electron has finished
@@ -415,6 +490,111 @@ try {
     updateTracks(currentTaskId, Date.now(), true);
   });
 
+  // login call
+  ipcMain.on('login-call', (event, arg) => {
+    if (arg && arg['url'] && arg['method'] && arg['headers']) {
+      if (arg['method'] === 'POST' && !arg['formData']) {
+        event.sender.send('login-call-reply', {
+          success: false,
+          msg: 'POST call requires form data.'
+        });
+        return;
+      }
+
+      httpCall(event, arg['url'], arg['method'], arg['headers'], arg['formData']).then((res) => {
+        if (res['resp']['headers'] && res['resp']['headers']['set-cookie']) {
+          let cookies = parseCookies(res['resp']['headers']['set-cookie'][0]);
+          event.sender.send('login-call-reply', {
+            success: true,
+            msg: '',
+            token: cookies['token']
+          });
+        } else {
+          event.sender.send('login-call-reply', {
+            success: false,
+            msg: 'There is no cookie'
+          });
+        }
+      }).catch(() => {
+        event.sender.send('login-call-reply', {
+          success: false,
+          msg: 'There is no cookie'
+        });
+      });
+    } else {
+      event.sender.send('login-call-reply', {
+        success: false,
+        msg: 'The url, method or headers is not defined.'
+      });
+    }
+  });
+
+  // get all tasks
+  ipcMain.on('tasks-call', (event, arg) => {
+    httpCall(
+      event,
+      `/trackly/gets/tasks?target_table=projects&table_join_column=project_id&target_table_join_column=id&where=project_id=${arg['projectId']}`,
+      'GET',
+      {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${arg['token']}`
+      }
+    ).then((res) => {
+      return event.sender.send('tasks-call-reply', {
+        success: true,
+        res: JSON.parse(res['body'])
+      });
+    }).catch(() => {
+      return event.sender.send('tasks-call-reply', {
+        success: false
+      });
+    });
+  });
+
+  // get all projects
+  ipcMain.on('projects-call', (event, arg) => {
+    httpCall(
+      event,
+      '/trackly/gets/projects',
+      'GET',
+      {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${arg['token']}`
+      }
+    ).then((res) => {
+      return event.sender.send('projects-call-reply', {
+        success: true,
+        res: JSON.parse(res['body'])
+      });
+    }).catch(() => {
+      return event.sender.send('projects-call-reply', {
+        success: false
+      });
+    });
+  });
+
+  // get specific project
+  ipcMain.on('project-call', (event, arg) => {
+    httpCall(
+      event,
+      `/trackly/gets/projects?where=id=${arg['projectId']}`,
+      'GET',
+      {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${arg['token']}`
+      }
+    ).then((res) => {
+      return event.sender.send('project-call-reply', {
+        success: true,
+        res: JSON.parse(res['body'])
+      });
+    }).catch(() => {
+      return event.sender.send('project-call-reply', {
+        success: false
+      });
+    });
+  });
+
   ioHook.on('keydown', event => {
     if (isTrack) {
       keyboardCount ++;
@@ -429,6 +609,9 @@ try {
 
   // Register and start hook
   ioHook.start(false);
+  console.log('---start');
+  
+  console.log('---end---')
 
 } catch (e) {console.log('error: ', e);
   // Catch Error

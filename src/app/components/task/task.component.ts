@@ -1,33 +1,55 @@
-import { Component, OnInit, Output, OnDestroy } from '@angular/core';
-import { EventEmitter } from 'electron';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AlertService } from '../_services/alert.service';
 import { ElectronService } from 'ngx-electron';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-home',
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  selector: 'app-task',
+  templateUrl: './task.component.html',
+  styleUrls: ['./task.component.scss']
 })
-export class HomeComponent implements OnInit, OnDestroy {
+export class TaskComponent implements OnInit, OnDestroy {
   tasks: Object[];
   isCreate: boolean;
+  isLoadProject: boolean;
+  isLoadTasks: boolean;
   newTaskName: string;
+  projectName: string;
   windowWidth: number;
   windowHeight: number;
   selectedTaskId: number;
+  projectId: number;
+  activeRouteSub: Subscription;
 
 
   constructor(
     private alertService: AlertService,
-    private _electronService: ElectronService
+    private _electronService: ElectronService,
+    private activeRoute: ActivatedRoute
   ) {
     this.tasks = [];
-    this.isCreate = false;
+    this.isLoadProject = false;
+    this.isLoadTasks = false;
     this.windowWidth = 0;
     this.windowHeight = 0;
     this.selectedTaskId = -1;
+    this.projectName = '';
 
     if(this._electronService.isElectronApp) {
+      this._electronService.ipcRenderer.on('tasks-call-reply', (event, arg) => {
+        console.log('tasks: ', arg);
+        if (arg['success']) {
+          this.tasks = arg['res'];
+        }
+        this.isLoadTasks = true;
+      });
+      this._electronService.ipcRenderer.on('project-call-reply', (event, arg) => {
+        if (arg['success']) {
+          this.projectName = arg['res'][0] ? arg['res'][0]['name'] : '';
+        }
+        this.isLoadProject = true;
+      });
       this._electronService.ipcRenderer.send('get-window-size', 'ping');
       this._electronService.ipcRenderer.send('get-fake-data', 'ping');
       this._electronService.ipcRenderer.send('take-screenshot', 'ping');
@@ -35,17 +57,17 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       this._electronService.ipcRenderer.on('get-fake-data-reply', (event, arg) => {
         if (arg['status']) {
-          this.tasks = arg['data'];
+          // this.tasks = arg['data'];
         }
       });
 
       this._electronService.ipcRenderer.on('create-fake-data-reply', (event, arg) => {
-        if (arg['status']) {
-          this.tasks = arg['data'];
-          this.alertService.success('Creating a task is successful!');
-        } else {
-          this.alertService.error('Creating a task is failed.');
-        }
+        // if (arg['status']) {
+        //   this.tasks = arg['data'];
+        //   this.alertService.success('Creating a task is successful!');
+        // } else {
+        //   this.alertService.error('Creating a task is failed.');
+        // }
       });
 
       this._electronService.ipcRenderer.on('get-window-size-reply', (event, arg) => {
@@ -63,8 +85,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
 
       this._electronService.ipcRenderer.on('update-fakeData-reply', (event, arg) => {
-        console.log('update fake data: ', arg);
-        this.tasks = arg;
+        // console.log('update fake data: ', arg);
+        // this.tasks = arg;
       });
 
       this._electronService.ipcRenderer.on('take-screenshot-reply', (event, arg) => {
@@ -74,16 +96,33 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.activeRouteSub = this.activeRoute.params.subscribe(params => {
+      this.projectId = parseInt(params['id']);
+      this._electronService.ipcRenderer.send('tasks-call', {
+        token: localStorage.getItem('userToken'),
+        projectId: this.projectId
+      });
+      this._electronService.ipcRenderer.send('project-call', {
+        token: localStorage.getItem('userToken'),
+        projectId: this.projectId
+      });
+    });
   }
 
   ngOnDestroy() {
-    this._electronService.ipcRenderer.removeAllListeners('get-fake-data-reply');
-    this._electronService.ipcRenderer.removeAllListeners('create-fake-data-reply');
-    this._electronService.ipcRenderer.removeAllListeners('get-window-size-reply');
-    this._electronService.ipcRenderer.removeAllListeners('build-screenshot-reply');
-    this._electronService.ipcRenderer.removeAllListeners('start-screenshot-reply');
-    this._electronService.ipcRenderer.removeAllListeners('update-fakeData-reply');
-    this._electronService.ipcRenderer.removeAllListeners('take-screenshot-reply');
+    if (this._electronService.ipcRenderer) {
+      this._electronService.ipcRenderer.removeAllListeners('get-fake-data-reply');
+      this._electronService.ipcRenderer.removeAllListeners('create-fake-data-reply');
+      this._electronService.ipcRenderer.removeAllListeners('get-window-size-reply');
+      this._electronService.ipcRenderer.removeAllListeners('build-screenshot-reply');
+      this._electronService.ipcRenderer.removeAllListeners('start-screenshot-reply');
+      this._electronService.ipcRenderer.removeAllListeners('update-fakeData-reply');
+      this._electronService.ipcRenderer.removeAllListeners('take-screenshot-reply');
+    }
+
+    if (this.activeRouteSub) {
+      this.activeRouteSub.unsubscribe();
+    }
   }
 
   onCreate() {

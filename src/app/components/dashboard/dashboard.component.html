@@ -1,40 +1,37 @@
-<div class="home-container m-3">
+<div class="project-container m-3" *ngIf="isLoad; else loadEle">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Sales</h2>
-    <!-- <input [(ngModel)] = "newItem" placeholder="Add Item" class="addText"> -->
+    <h3>Dashboard</h3>
     <a (click) = "onCreate()"><i class="fa fa-plus text-primary fa-lg" aria-hidden="true"></i></a>
   </div>
 
   <div *ngIf="isCreate" class="d-flex justify-content-between align-items-center mb-3">
     <input type="text" class="form-control mr-3"
     required
-    [(ngModel)]="newTaskName" placeholder="Task Name">
+    [(ngModel)]="projectName" placeholder="Project Name">
     <div class="d-flex justify-content-between align-items-center">
-      <a class="mr-2" (click)="onCreateTask()">
+      <a class="mr-2" (click)="onCreateProject()">
         <i class="fa fa-check text-success" aria-hidden="true"></i>
       </a>
-      <a (click)="onCancelTask()">
+      <a (click)="onCancelProject()">
         <i class="fa fa-times text-danger" aria-hidden="true"></i>
       </a>
     </div>
   </div>
   
-  <div class="tasks-container">
+  <div class="project-list-container">
     <ul class="list-group">
       <li
         class="list-group-item d-flex justify-content-between align-items-center"
-        *ngFor="let task of tasks; let ind = index" (click)="onSelectTask(task.id)"
-        [ngClass]="{'active': selectedTaskId === task.id}"
+        *ngFor="let project of projects; let ind = index"
       >
-        <div>{{ task?.title }}</div>
+        <a [routerLink]="['/task/' + project.id]">{{ project?.name }}</a>
         <div class="d-flex justify-content-between align-items-center">
-          <div class="mr-4">{{ task?.time | timeConvert}}</div>
           <div>
-            <a *ngIf="task.status === 'stop'; else playEle" (click)="onStartScreenshot(task.id)">
+            <a *ngIf="project.status === 'DeActive'; else playEle">
               <i class="fa fa-play-circle-o" aria-hidden="true"></i>
             </a>
             <ng-template #playEle>
-              <a (click)="onStopScreenshot(task.id)">
+              <a (click)="onStopScreenshot(project.id)">
                 <i class="fa fa-stop-circle-o" aria-hidden="true"></i>
               </a>
             </ng-template>
@@ -44,3 +41,9 @@
     </ul>
   </div>
 </div>
+
+<ng-template #loadEle>
+  <div class="my-4 d-flex justify-content-center align-items-center">
+    <i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
+  </div>
+</ng-template>

@@ -17,19 +17,17 @@ import { ElectronService } from './providers/electron.service';
 import { WebviewDirective } from './directives/webview.directive';
 
 import { AppComponent } from './app.component';
-import { HomeComponent } from './components/home/home.component';
+import { TaskComponent } from './components/task/task.component';
 import { LoginComponent } from './components/login/login.component';
 
 import { AngularFontAwesomeModule } from 'angular-font-awesome';
-import { AuthenticationService } from './components/_services/authentication.service';
 import { AlertComponent } from './components/_directives/alert/alert.component';
 import { AlertService } from './components/_services/alert.service';
 import { HeaderComponent } from './components/header/header.component';
 import { routing } from './app.routing';
 import { AuthGuard } from './components/_guards/auth.guard';
 import { TimeConvertPipe } from './components/_pipes/time-convert.pipe';
-import { JwtInterceptorService } from './components/_services/jwt.interceptor.service';
-import { ErrorInterceptorService } from './components/_services/error.interceptor.service';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -39,12 +37,13 @@ export function HttpLoaderFactory(http: HttpClient) {
 @NgModule({
   declarations: [
     AppComponent,
-    HomeComponent,
+    TaskComponent,
     WebviewDirective,
     LoginComponent,
     AlertComponent,
     HeaderComponent,
-    TimeConvertPipe
+    TimeConvertPipe,
+    DashboardComponent
   ],
   imports: [
     BrowserModule,
@@ -64,11 +63,8 @@ export function HttpLoaderFactory(http: HttpClient) {
   ],
   providers: [
     ElectronService,
-    AuthenticationService,
     AlertService,
-    AuthGuard,
-    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptorService, multi: true },
-    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptorService, multi: true },
+    AuthGuard
   ],
   bootstrap: [AppComponent]
 })

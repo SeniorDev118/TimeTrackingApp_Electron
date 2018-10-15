@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { AuthenticationService } from '../_services/authentication.service';
 
 @Component({
   selector: 'app-header',
@@ -13,7 +12,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   sub: Subscription;
 
   constructor(
-    private authenticationService: AuthenticationService,
     private router: Router
   ) {
   }
@@ -33,7 +31,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   initData() {
-    if (localStorage.getItem('currentUser')) {
+    if (localStorage.getItem('userToken')) {
       this.isLogin = true;
     } else {
       this.isLogin = false;
@@ -41,7 +39,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   logout() {
-    this.authenticationService.logout();
+    localStorage.removeItem('userToken');
+    this.router.navigate(['/login']);
   }
 
 }

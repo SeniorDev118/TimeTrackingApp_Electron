@@ -1,9 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { first } from 'rxjs/operators';
-import { AuthenticationService } from '../_services/authentication.service';
 import { AlertService } from '../_services/alert.service';
+import { ElectronService } from 'ngx-electron';
 
 @Component({
   selector: 'app-login',
@@ -20,8 +19,9 @@ export class LoginComponent implements OnInit {
     private formBuilder: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private authenticationService: AuthenticationService,
-    private alertService: AlertService) {}
+    private alertService: AlertService,
+    private _electronService: ElectronService
+  ) {}
 
   ngOnInit() {
     this.loginForm = this.formBuilder.group({
@@ -36,7 +36,7 @@ export class LoginComponent implements OnInit {
     });
 
     // reset login status
-    this.authenticationService.logout();
+    localStorage.removeItem('userToken');
 
     // get return url from route parameters or default to '/'
     // this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
@@ -55,11 +55,25 @@ export class LoginComponent implements OnInit {
     }
 
     this.loading = true;
-    this.authenticationService.login(this.f.email.value, this.f.password.value).then(() => {
-      this.router.navigate([this.returnUrl]);
-    }).catch(() => {
-      this.alertService.error('Wrong email or password.');
-      this.loading = false;
+    this._electronService.ipcRenderer.send('login-call', {
+      url: '/trackly/login',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      formData: {
+        email: this.f.email.value,
+        password: this.f.password.value
+      }
+    });
+    this._electronService.ipcRenderer.once('login-call-reply', (event, arg) => {
+      if (arg['success'] && arg['token']) {
+        localStorage.setItem('userToken', arg['token']);
+        this.router.navigate([this.returnUrl]);
+      } else {
+        this.alertService.error('Wrong email or password.');
+        this.loading = false;
+      }
     });
   }
 }
