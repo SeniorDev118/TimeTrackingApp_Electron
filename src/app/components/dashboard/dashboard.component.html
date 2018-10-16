@@ -1,21 +1,6 @@
 <div class="project-container m-3" *ngIf="isLoad; else loadEle">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="mb-3">
     <h3>Dashboard</h3>
-    <a (click) = "onCreate()"><i class="fa fa-plus text-primary fa-lg" aria-hidden="true"></i></a>
-  </div>
-
-  <div *ngIf="isCreate" class="d-flex justify-content-between align-items-center mb-3">
-    <input type="text" class="form-control mr-3"
-    required
-    [(ngModel)]="projectName" placeholder="Project Name">
-    <div class="d-flex justify-content-between align-items-center">
-      <a class="mr-2" (click)="onCreateProject()">
-        <i class="fa fa-check text-success" aria-hidden="true"></i>
-      </a>
-      <a (click)="onCancelProject()">
-        <i class="fa fa-times text-danger" aria-hidden="true"></i>
-      </a>
-    </div>
   </div>
   
   <div class="project-list-container">
@@ -25,7 +10,7 @@
         *ngFor="let project of projects; let ind = index"
       >
         <a [routerLink]="['/task/' + project.id]">{{ project?.name }}</a>
-        <div class="d-flex justify-content-between align-items-center">
+        <!-- <div class="d-flex justify-content-between align-items-center">
           <div>
             <a *ngIf="project.status === 'DeActive'; else playEle">
               <i class="fa fa-play-circle-o" aria-hidden="true"></i>
@@ -36,7 +21,7 @@
               </a>
             </ng-template>
           </div>
-        </div>
+        </div> -->
       </li>
     </ul>
   </div>

@@ -5,18 +5,18 @@ import * as url from 'url';
 import * as fs from 'fs';
 import * as request from 'request';
 import { CronJob } from 'cron';
-let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandler, cronjobHandler, currentTaskId;
-let readedFakeData, previousTimestamp;
-let fakeDataSubscribeEvent, takeScreenshotEvent;
-let contextMenu;
+let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandler, cronjobHandler;
+let takeScreenshotEvent;
+let contextMenu, currentToken, currentTaskId, currentProjectId, previousTimestamp;
 let screenshotUrls = [];
 const spanSeconds = 60;
-const apiUrl = 'https://apps.appup.cloud';
+const apiUrl = 'https://tracklyapp.appup.cloud';
 const args = process.argv.slice(1);
 isTrack = false;
 keyboardCount = 0;
 mouseCount = 0;
 currentTaskId = -1;
+currentProjectId = -1;
 previousTimestamp = 0;
 serve = args.some(val => val === '--serve');
 
@@ -112,7 +112,7 @@ function createWindow() {
  * @param headers
  * @param formData
  */
-function httpCall(event, url, method, headers, formData = {}): Promise<any> {
+function httpCall(url, method, headers, formData = {}): Promise<any> {
   return new Promise((resolve, reject) => {
     if (method === 'POST') {
       request.post({
@@ -161,83 +161,67 @@ function httpCall(event, url, method, headers, formData = {}): Promise<any> {
   });
 }
 
-function login() {
-
+function formatDate(date) {
+  var hours = date.getHours();
+  var minutes = date.getMinutes();
+  var seconds = date.getSeconds();
+  hours = hours < 10 ? '0' + hours : hours;
+  minutes = minutes < 10 ? '0'+minutes : minutes;
+  seconds = seconds < 10 ? '0'+seconds : seconds;
+  var strTime = hours + ':' + minutes + ':' + seconds;
+  var years = date.getFullYear();
+  var months = date.getMonth() + 1;
+  var dates = date.getDate();
+  return years + '-' + months + '-' + dates + ' ' + strTime;
 }
 
-function updateTracks(taskId, timestamp, isForceClose = false): Promise<any> {
+/**
+ * 
+ * @param taskId 
+ * @param timestamp 
+ * @param isForceClose 
+ */
+function updateTracks(projectId, taskId, timestamp): Promise<any> {
   return new Promise((resolve, reject) => {
-    if (!fs.existsSync(path.join(__dirname, 'data'))) {
-      fs.mkdirSync(path.join(__dirname, 'data'));
-    }
-  
-    let jsonFilePath = path.join(__dirname, 'data/data.json');
-    let timeDistance = Math.floor((timestamp - previousTimestamp) / 1000);
-    previousTimestamp = timestamp;
-  
-    if (!isForceClose) {
-      if (timeDistance > 57) {
-        timeDistance = spanSeconds;
-        takeScreenShots(taskId, spanSeconds * 1000);
-      } else {
-        takeScreenShots(taskId, spanSeconds * 1000, false);
-      }
+    let duration = Math.floor((timestamp - previousTimestamp) / 1000);
+
+    if (duration > 57) {
+      duration = spanSeconds;
+      // takeScreenShots(taskId, spanSeconds * 1000);
     } else {
-      takeScreenShots(taskId, spanSeconds * 1000, false);
+      // takeScreenShots(taskId, spanSeconds * 1000, false);
     }
+
+    const newActivity = {
+      project_id: projectId,
+      task_id: taskId,
+      duration: duration,
+      mode: 'MANUAL',
+      reason: 'task interval screenshot detail done',
+      date: formatDate(new Date(timestamp)),
+      from_time: formatDate(new Date(previousTimestamp)),
+      to_time: formatDate(new Date(timestamp)),
+      screenshot_url: '',
+      mouse_click_count: mouseCount,
+      keyboard_count: keyboardCount
+    };
+    previousTimestamp = timestamp;
+    console.log('---create activity---');
+    console.log(newActivity);
   
     // update time, mouse count and keyboard count
-    fs.readFile(jsonFilePath, (err, data) => {  
-      if (err) {
-        if (isForceClose) {
-          clearData();
-        }
-        console.log('Opening a file is failed.');
-        return reject('Opening a file is failed.');
-      }
-      let res = JSON.parse(data.toString());
-      if (res['data'] && res['data'].length > 0) {
-        for (let index = 0; index < res['data'].length; index ++) {
-          if (res['data'][index]['id'] === currentTaskId) {
-            if (isForceClose) {
-              res['data'][index]['status'] = 'stop';
-            }
-            if (!res['data'][index]['timeLogs']) {
-              res['data'][index]['timeLogs'] = {};
-            }
-            res['data'][index]['time'] += timeDistance;
-            res['data'][index]['timeLogs'][timestamp] = {
-              keyboardCount: keyboardCount,
-              mouseCount: mouseCount
-            };
-            
-            if (!res['data'][index]['screens']) {
-              res['data'][index]['screens'] = [];
-            }
-  
-            if (screenshotUrls.length > 0) {
-              res['data'][index]['screens'] = res['data'][index]['screens'].concat(screenshotUrls);
-            }
-          }
-        }
-      }
-      let json = JSON.stringify(res); //convert it back to json
-      fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
-        if (err) {
-          if (isForceClose) {
-            clearData();
-          }
-          console.log('Writing in data.json is failed');
-          return reject('Writing in data.json is failed.');
-        }
-        console.log('Success to write in data.json');
-        fakeDataSubscribeEvent.sender.send('update-fakeData-reply', res['data']);
-        screenshotUrls = [];
-        if (isForceClose) {
-          clearData();
-        }
-        return resolve();
-      });
+    httpCall(
+      '/trackly/create/activity',
+      'POST',
+      {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentToken}`
+      },
+      newActivity
+    ).then((res) => {console.log('--success--');
+      resolve();
+    }).catch(() => {console.log('--failed--');
+      reject();
     });
   });
 }
@@ -259,36 +243,6 @@ function takeScreenShots(taskId, during, isLoop = true) {
       takeScreenshotEvent.sender.send('take-screenshot-reply', taskId); 
     }, time);
   }
-}
-
-function changeTaskStatus(status) {
-  if (!fs.existsSync(path.join(__dirname, 'data'))) {
-    fs.mkdirSync(path.join(__dirname, 'data'));
-  }
-  let jsonFilePath = path.join(__dirname, 'data/data.json');
-  fs.readFile(jsonFilePath, (err, data) => {
-    if (err) {
-      console.log('Opening a file is failed');
-      return;
-    }
-    let res = JSON.parse(data.toString());
-    if (res['data'] && res['data'].length > 0) {
-      for (let index = 0; index < res['data'].length; index ++) {
-        if (res['data'][index]['id'] === currentTaskId) {
-          res['data'][index]['status'] = status;
-        }
-      }
-      let json = JSON.stringify(res); //convert it back to json
-      fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
-        if (err) {
-          console.log('Updating a status in data.json is failed');
-          return;
-        }
-        console.log('Success to update a status in data.json');
-        fakeDataSubscribeEvent.sender.send('update-fakeData-reply', res['data']);
-      });
-    }
-  });
 }
 
 // stop interval
@@ -313,10 +267,7 @@ function clearData() {
 function Destroy() {
   if (ipcMain) {
     ipcMain.removeAllListeners('get-window-size');
-    ipcMain.removeAllListeners('update-fakeData');
     ipcMain.removeAllListeners('take-screenshot');
-    ipcMain.removeAllListeners('get-fake-data');
-    ipcMain.removeAllListeners('create-fake-data');
     ipcMain.removeAllListeners('build-screenshot');
     ipcMain.removeAllListeners('select-task');
     ipcMain.removeAllListeners('start-screenshot');
@@ -366,8 +317,8 @@ try {
   cronjobHandler = new CronJob('0 */1 * * * *', function() {
     console.log('cronjob running:');
     if (isTrack) {
-      let timestamp = Date.now();
-      updateTracks(currentTaskId, timestamp);
+      // updateTracks(currentTaskId, timestamp);
+      updateTracks(currentProjectId, currentTaskId, Date.now());
     }
   }, null, true, 'America/Los_Angeles');
 
@@ -375,58 +326,8 @@ try {
     event.sender.send('get-window-size-reply', size);
   });
 
-  ipcMain.on('update-fakeData', (event, arg) => {
-    fakeDataSubscribeEvent = event;
-  });
-
   ipcMain.on('take-screenshot', (event, arg) => {
     takeScreenshotEvent = event;
-  });
-
-  ipcMain.on('get-fake-data', (event, arg) => {
-    let jsonFilePath = path.join(__dirname, 'data/data.json');
-    fs.readFile(jsonFilePath, (err, data) => {  
-      if (err) {
-        readedFakeData = [];
-        return event.sender.send('get-fake-data-reply', {
-          status: false
-        });
-      }
-
-      let res = JSON.parse(data.toString());
-      readedFakeData = res['data'] ? res['data'] : [];
-      return event.sender.send('get-fake-data-reply', {
-        status: true,
-        data: res['data']
-      });
-    });
-  });
-
-  ipcMain.on('create-fake-data', (event, arg) => {
-    readedFakeData.push(arg);
-    let backup = readedFakeData;
-    if (!fs.existsSync(path.join(__dirname, 'data'))) {
-      fs.mkdirSync(path.join(__dirname, 'data'));
-    }
-
-    let json = JSON.stringify({data: readedFakeData}); //convert it back to json
-    let jsonFilePath = path.join(__dirname, 'data/data.json');
-    fs.writeFile(jsonFilePath, json, 'utf8', function(err) {
-      if (err) {
-        console.log('Updating in data.json is failed');
-        readedFakeData = backup;
-        return event.sender.send('create-fake-data-reply', {
-          status: false,
-          data: readedFakeData
-        });
-      }
-      console.log('Success to add in data.json');
-      return event.sender.send('create-fake-data-reply', {
-        status: true,
-        data: readedFakeData
-      });
-    });
-    
   });
 
   // build a screenshot
@@ -462,32 +363,41 @@ try {
     if (contextMenu) {
       contextMenu.items[0].enabled = true;
       contextMenu.items[1].enabled = false;
-      event.sender.send('select-task-reply', arg);
     }
+    event.sender.send('select-task-reply', arg);
   });
 
   // start to track
   ipcMain.on('start-screenshot', (event, arg) => {
     isTrack = true;
-    if (currentTaskId !== -1 && currentTaskId !== arg) {
-      previousTimestamp = Date.now();
-      updateTracks(currentTaskId, Date.now(), true).then(() => {
-        currentTaskId = arg;
-        changeTaskStatus('start');
-      }).catch((error) => {
-        console.log(error);
+    const currentTimestamp = Date.now();
+    currentToken = arg['token'];
+    currentTaskId = arg['taskId'];
+    currentProjectId = arg['projectId'];
+
+    previousTimestamp = currentTimestamp;
+    if (currentProjectId !== -1 && currentTaskId !== -1 && currentToken) {
+      return event.sender.send('start-screenshot-reply', {
+        status: true,
+        taskId: arg['taskId'],
+        projectId: arg['projectId']
       });
     } else {
-      previousTimestamp = Date.now();
-      currentTaskId = arg;
-      changeTaskStatus('start');
+      return event.sender.send('start-screenshot-reply', {
+        status: false,
+        taskId: arg['taskId'],
+        projectId: arg['projectId']
+      });
     }
   });
 
   // stop to track
   ipcMain.on('stop-screenshot', (event, arg) => {
-    currentTaskId = arg;
-    updateTracks(currentTaskId, Date.now(), true);
+    currentTaskId = arg['taskId'];
+    currentProjectId = arg['projectId'];
+    isTrack = false;
+    updateTracks(currentProjectId, currentTaskId, Date.now());
+    event.sender.send('stop-screenshot-reply', currentTaskId);
   });
 
   // login call
@@ -501,7 +411,7 @@ try {
         return;
       }
 
-      httpCall(event, arg['url'], arg['method'], arg['headers'], arg['formData']).then((res) => {
+      httpCall(arg['url'], arg['method'], arg['headers'], arg['formData']).then((res) => {
         if (res['resp']['headers'] && res['resp']['headers']['set-cookie']) {
           let cookies = parseCookies(res['resp']['headers']['set-cookie'][0]);
           event.sender.send('login-call-reply', {
@@ -532,7 +442,6 @@ try {
   // get all tasks
   ipcMain.on('tasks-call', (event, arg) => {
     httpCall(
-      event,
       `/trackly/gets/tasks?target_table=projects&table_join_column=project_id&target_table_join_column=id&where=project_id=${arg['projectId']}`,
       'GET',
       {
@@ -554,7 +463,6 @@ try {
   // get all projects
   ipcMain.on('projects-call', (event, arg) => {
     httpCall(
-      event,
       '/trackly/gets/projects',
       'GET',
       {
@@ -576,7 +484,6 @@ try {
   // get specific project
   ipcMain.on('project-call', (event, arg) => {
     httpCall(
-      event,
       `/trackly/gets/projects?where=id=${arg['projectId']}`,
       'GET',
       {
@@ -609,9 +516,6 @@ try {
 
   // Register and start hook
   ioHook.start(false);
-  console.log('---start');
-  
-  console.log('---end---')
 
 } catch (e) {console.log('error: ', e);
   // Catch Error

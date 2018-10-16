@@ -11,10 +11,8 @@ import { Subscription } from 'rxjs';
 })
 export class TaskComponent implements OnInit, OnDestroy {
   tasks: Object[];
-  isCreate: boolean;
   isLoadProject: boolean;
   isLoadTasks: boolean;
-  newTaskName: string;
   projectName: string;
   windowWidth: number;
   windowHeight: number;
@@ -39,36 +37,50 @@ export class TaskComponent implements OnInit, OnDestroy {
     if(this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.on('tasks-call-reply', (event, arg) => {
         console.log('tasks: ', arg);
-        if (arg['success']) {
-          this.tasks = arg['res'];
+        this.tasks = [];
+        this.isLoadTasks = false;
+        if (arg['success'] && arg['res'].length > 0) {
+          this.tasks = arg['res'].map((item) => {
+            item['timerStatus'] = 'InActive';
+            return item;
+          });
         }
         this.isLoadTasks = true;
       });
       this._electronService.ipcRenderer.on('project-call-reply', (event, arg) => {
+        this.isLoadProject = false;
         if (arg['success']) {
           this.projectName = arg['res'][0] ? arg['res'][0]['name'] : '';
         }
         this.isLoadProject = true;
       });
-      this._electronService.ipcRenderer.send('get-window-size', 'ping');
-      this._electronService.ipcRenderer.send('get-fake-data', 'ping');
-      this._electronService.ipcRenderer.send('take-screenshot', 'ping');
-      this._electronService.ipcRenderer.send('update-fakeData', 'ping');
-
-      this._electronService.ipcRenderer.on('get-fake-data-reply', (event, arg) => {
-        if (arg['status']) {
-          // this.tasks = arg['data'];
+      this._electronService.ipcRenderer.on('start-screenshot-reply', (event, arg) => {
+        console.log('start-screenshot-reply:', arg);
+        if (this.tasks.length > 0) {
+          for (let index = 0; index < this.tasks.length; index ++) {
+            if (this.tasks[index]['id'] === arg['taskId']) {
+              if (arg['status']) {
+                this.tasks[index]['timerStatus'] = 'Active';
+              } else {
+                this.tasks[index]['timerStatus'] = 'InActive';
+              }
+            }
+          }
+        }
+      });
+      this._electronService.ipcRenderer.on('stop-screenshot-reply', (event, arg) => {
+        if (this.tasks.length > 0) {
+          for (let index = 0; index < this.tasks.length; index ++) {
+            if (this.tasks[index]['id'] === arg) {
+              this.tasks[index]['timerStatus'] = 'InActive';
+            }
+          }
         }
       });
 
-      this._electronService.ipcRenderer.on('create-fake-data-reply', (event, arg) => {
-        // if (arg['status']) {
-        //   this.tasks = arg['data'];
-        //   this.alertService.success('Creating a task is successful!');
-        // } else {
-        //   this.alertService.error('Creating a task is failed.');
-        // }
-      });
+
+      this._electronService.ipcRenderer.send('get-window-size', 'ping');
+      this._electronService.ipcRenderer.send('take-screenshot', 'ping');
 
       this._electronService.ipcRenderer.on('get-window-size-reply', (event, arg) => {
         let standardWidth = 480;
@@ -78,15 +90,6 @@ export class TaskComponent implements OnInit, OnDestroy {
 
       this._electronService.ipcRenderer.on('build-screenshot-reply', (event, arg) => {
         console.log('build-screenshot:', arg);
-      });
-
-      this._electronService.ipcRenderer.on('start-screenshot-reply', (event, arg) => {
-        console.log(arg);
-      });
-
-      this._electronService.ipcRenderer.on('update-fakeData-reply', (event, arg) => {
-        // console.log('update fake data: ', arg);
-        // this.tasks = arg;
       });
 
       this._electronService.ipcRenderer.on('take-screenshot-reply', (event, arg) => {
@@ -111,12 +114,13 @@ export class TaskComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this._electronService.ipcRenderer) {
-      this._electronService.ipcRenderer.removeAllListeners('get-fake-data-reply');
-      this._electronService.ipcRenderer.removeAllListeners('create-fake-data-reply');
+      this._electronService.ipcRenderer.removeAllListeners('tasks-call-reply');
+      this._electronService.ipcRenderer.removeAllListeners('project-call-reply');
+      this._electronService.ipcRenderer.removeAllListeners('start-screenshot-reply');
+      this._electronService.ipcRenderer.removeAllListeners('stop-screenshot-reply');
+
       this._electronService.ipcRenderer.removeAllListeners('get-window-size-reply');
       this._electronService.ipcRenderer.removeAllListeners('build-screenshot-reply');
-      this._electronService.ipcRenderer.removeAllListeners('start-screenshot-reply');
-      this._electronService.ipcRenderer.removeAllListeners('update-fakeData-reply');
       this._electronService.ipcRenderer.removeAllListeners('take-screenshot-reply');
     }
 
@@ -125,35 +129,12 @@ export class TaskComponent implements OnInit, OnDestroy {
     }
   }
 
-  onCreate() {
-    this.isCreate = true;
-  }
-
-  onCreateTask() {
-    if (!this.newTaskName) {
-      this.alertService.error('Task name is required.');
-      return;
-    }
-    
-    this._electronService.ipcRenderer.send('create-fake-data', {
-      id: Math.floor(Math.random() * 100),
-      title: this.newTaskName,
-      time: 0,
-      status: 'stop'
-    });
-    this.newTaskName = '';
-    this.isCreate = false;
-  }
-
-  onCancelTask() {
-    this.isCreate = false;
-  }
-
   onStopScreenshot(taskId: number) {
     this.selectedTaskId = taskId;
     if(this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('stop-screenshot', {
-        taskId: taskId
+        taskId: taskId,
+        projectId: this.projectId
       });
     }
   }
@@ -161,7 +142,11 @@ export class TaskComponent implements OnInit, OnDestroy {
   onStartScreenshot(taskId: number) {
     this.selectedTaskId = taskId;
     if(this._electronService.isElectronApp) {
-      this._electronService.ipcRenderer.send('start-screenshot', taskId);
+      this._electronService.ipcRenderer.send('start-screenshot', {
+        token: localStorage.getItem('userToken'),
+        taskId: taskId,
+        projectId: this.projectId
+      });
     }
   }
 

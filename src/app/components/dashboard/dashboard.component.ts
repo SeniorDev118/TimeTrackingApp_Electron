@@ -7,18 +7,14 @@ import { ElectronService } from 'ngx-electron';
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  isCreate: boolean;
   isLoad: boolean;
-  projectName: string;
 
   projects: Object[];
 
   constructor(
     private _electronService: ElectronService
   ) {
-    this.projectName = '';
     this.projects = [];
-    this.isCreate = false;
     this.isLoad = false;
   }
 
@@ -41,18 +37,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this._electronService.ipcRenderer) {
       this._electronService.ipcRenderer.removeAllListeners('projects-call-reply');
     }
-  }
-
-  onCreate() {
-    this.isCreate = true;
-  }
-
-  onCreateProject() {
-
-  }
-
-  onCancelProject() {
-    this.isCreate = false;
   }
 
 }
