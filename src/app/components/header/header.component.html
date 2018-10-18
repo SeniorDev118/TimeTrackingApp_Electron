@@ -1,5 +1,5 @@
 <nav class="navbar navbar-dark bg-dark">
-  <a class="navbar-brand" [routerLink]="['/home']">TimeTrack</a>
+  <a class="navbar-brand" [routerLink]="['/dashboard']">TimeTrack</a>
   <!-- <div class="navbar-expand mr-auto" *ngIf="isLogin">
     <div class="navbar-nav">
       <a class="nav-item nav-link" [ngClass]="{'active': path === '/'}" [routerLink]="['/']">Home</a>
@@ -7,12 +7,9 @@
   </div> -->
   <div class="navbar-expand ml-auto navbar-nav">
     <div class="navbar-nav">
-      <a class="nav-item nav-link" (click)="logout()" *ngIf="isLogin;else loginEle">
+      <a class="nav-item nav-link" (click)="logout()" *ngIf="isLogin">
         Logout
       </a>
-      <ng-template #loginEle>
-        <a class="nav-item nav-link" [routerLink]="['/login']">Login</a>
-      </ng-template>
     </div>
   </div>
 </nav>

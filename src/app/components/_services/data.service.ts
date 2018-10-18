@@ -136,7 +136,7 @@ export class DataService {
     this.currentProject = project;
   }
 
-  postActivity(activity: Object) {
+  postActivity(activity: Object, nCount: number = 0) {
     activity['screenshot_url'] = this.screenshotUrl;
     console.log('new activity: ', activity);
     this._httpService.postCall(
@@ -147,6 +147,12 @@ export class DataService {
         this.clearData();
       }).catch((err) => {
         console.log('Activity creation error', err);
+        if (nCount < 20) {
+            nCount ++;
+            setTimeout(() => {
+              this.postActivity(activity, nCount);
+            }, 5 * 60 * 1000);
+        }
       });
   }
 

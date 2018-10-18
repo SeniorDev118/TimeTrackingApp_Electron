@@ -75,11 +75,13 @@ function createWindow() {
     // y: 0,
     // width: 1280,
     // height: 720,
-    width: 375,
+    width: 472,
     height: 667,
     center: true,
-    minWidth: 1024,
-    minHeight: 565
+    minWidth: 472,
+    minHeight: 667,
+    maxWidth: 472,
+    maxHeight: 667
     // width: size.width,
     // height: size.height
   });
