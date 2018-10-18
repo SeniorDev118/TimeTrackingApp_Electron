@@ -19,7 +19,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <div class="mr-4">{{ task?.duration | timeConvert}}</div>
           <div>
-            <a *ngIf="task.timerStatus === 'InActive'; else playEle" (click)="onStartScreenshot(task.id)">
+            <a *ngIf="task.timerStatus === 'InActive'; else playEle" (click)="onStartScreenshot(task.id, $event)">
               <i class="fa fa-play-circle-o" aria-hidden="true"></i>
             </a>
             <ng-template #playEle>

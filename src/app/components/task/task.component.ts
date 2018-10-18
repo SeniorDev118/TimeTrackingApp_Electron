@@ -44,6 +44,7 @@ export class TaskComponent implements OnInit, OnDestroy {
     });
     this.tasksRouteSub = this._dataService.getTasksSubscribe().subscribe(res => {
       this.tasks = res['tasks'];
+      this.selectedTaskId = this._dataService.currentTaskId;
       this.isLoad = true;
     });
   }
@@ -58,20 +59,22 @@ export class TaskComponent implements OnInit, OnDestroy {
     }
   }
 
-  onStopScreenshot(taskId: number) {
+  onStartScreenshot(taskId: number, event: any) {
+    event.stopPropagation();
+
     this.selectedTaskId = taskId;
     if(this._electronService.isElectronApp) {
-      this._electronService.ipcRenderer.send('stop-screenshot', {
+      this._electronService.ipcRenderer.send('start-track', {
         taskId: taskId,
         projectId: this.projectId
       });
     }
   }
 
-  onStartScreenshot(taskId: number) {
+  onStopScreenshot(taskId: number) {
     this.selectedTaskId = taskId;
     if(this._electronService.isElectronApp) {
-      this._electronService.ipcRenderer.send('start-screenshot', {
+      this._electronService.ipcRenderer.send('stop-track', {
         taskId: taskId,
         projectId: this.projectId
       });
@@ -83,9 +86,6 @@ export class TaskComponent implements OnInit, OnDestroy {
     this._electronService.ipcRenderer.send('select-task', {
       taskId: taskId,
       projectId: this.projectId
-    });
-    this._electronService.ipcRenderer.once('select-task-reply', (event, arg) => {
-      this.alertService.success('The task is selected for tracking.');
     });
   }
 

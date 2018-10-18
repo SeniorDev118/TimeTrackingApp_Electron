@@ -35,12 +35,12 @@ export class DataService {
       this._electronService.ipcRenderer.on('tray-icon-control-reply', (event, arg) => {
         console.log('tray:', arg);
         if (arg['status'] === 'start') {
-          this._electronService.ipcRenderer.send('start-screenshot', {
+          this._electronService.ipcRenderer.send('start-track', {
             taskId: arg['taskId'],
             projectId: arg['projectId']
           });
         } else {
-          this._electronService.ipcRenderer.send('stop-screenshot', {
+          this._electronService.ipcRenderer.send('stop-track', {
             taskId: arg['taskId'],
             projectId: arg['projectId']
           });
@@ -67,8 +67,8 @@ export class DataService {
         this.takecreenshot();
       });
 
-      this._electronService.ipcRenderer.on('start-screenshot-reply', (event, arg) => {
-        console.log('start-screenshot-reply:', arg);
+      this._electronService.ipcRenderer.on('start-track-reply', (event, arg) => {
+        console.log('start-track-reply:', arg);
         this.currentPojectId = arg['projectId'];
         this.currentTaskId = arg['taskId'];
 
@@ -82,7 +82,7 @@ export class DataService {
         }
       });
 
-      this._electronService.ipcRenderer.on('stop-screenshot-reply', (event, arg) => {
+      this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {
         this.currentPojectId = -1;
         this.currentTaskId = -1;
         if (this.tasks.length > 0) {
@@ -151,7 +151,6 @@ export class DataService {
   }
 
   setScreenshotUrl(url: string) {
-    console.log('screenshot url: ', url)
     this.screenshotUrl = url;
   }
 
@@ -162,7 +161,7 @@ export class DataService {
   buildScreenshot(preUrl: string) {
     this.fullscreenScreenshot((blob) => {
       this._httpService.uploadFile(preUrl, blob, 'image/png').then((res) => {
-        console.log('presign success: ', this.screenshotUrl);
+        console.log('presign success: ');
       }).catch((err) => {
         console.log(err)
       });

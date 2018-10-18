@@ -2,13 +2,11 @@ import { app, BrowserWindow, screen, ipcMain, Tray, Menu } from 'electron';
 import * as ioHook from 'iohook';
 import * as path from 'path';
 import * as url from 'url';
-import * as request from 'request';
 import { CronJob } from 'cron';
 let win, serve, size, isTrack, keyboardCount, mouseCount;
 let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, timerHandler, cronjobHandler;
 let contextMenu, currentTaskId, currentProjectId, selectedTaskId, selectedProjectId, previousTimestamp, isMenuOpen;
 const spanSeconds = 60;
-const apiUrl = 'https://tracklyapp.appup.cloud';
 const args = process.argv.slice(1);
 isTrack = false;
 isMenuOpen = false;
@@ -75,10 +73,10 @@ function createWindow() {
   win = new BrowserWindow({
     // x: 0,
     // y: 0,
-    width: 1280,
-    height: 720,
-    // width: 580,
+    // width: 1280,
     // height: 720,
+    width: 375,
+    height: 667,
     center: true,
     minWidth: 1024,
     minHeight: 565
@@ -100,7 +98,7 @@ function createWindow() {
     }));
   }
 
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -111,64 +109,6 @@ function createWindow() {
     Destroy();
   });
 
-}
-
-/**
- * 
- * @param url 
- * @param method
- * @param headers
- * @param formData
- */
-function httpCall(url, method, headers, formData = {}): Promise<any> {
-  return new Promise((resolve, reject) => {
-    if (method === 'POST') {
-      request.post({
-        headers: headers,
-        url: `${apiUrl}/${url}`,
-        form: formData,
-        agentOptions: {
-          rejectUnauthorized: false
-        }
-      }, (err, resp, body) => {
-        console.log('--POST method---');
-        console.log('error:', err);
-        console.log('statusCode: ', resp.statusCode);
-        if (!err && resp.statusCode === 200) {
-          return resolve({
-            resp: resp,
-            body: body
-          });
-        } else {
-          return reject({
-            err: err,
-            statusCode: resp.statusCode
-          });
-        }
-      });
-    } else if (method === 'GET') {
-      request.get({
-        headers: headers,
-        url: `${apiUrl}/${url}`,
-        agentOptions: {
-          rejectUnauthorized: false
-        }
-      }, (err, resp, body) => {
-        console.log('--Get method---');
-        console.log('error:', err);
-        console.log('statusCode: ', resp.statusCode);
-        console.log('body:', body);
-        if (!err && resp.statusCode === 200) {
-          return resolve({
-            resp: resp,
-            body: body
-          });
-        } else {
-          return reject();
-        }
-      });
-    }
-  });
 }
 
 function formatDate(date) {
@@ -276,8 +216,8 @@ function Destroy() {
     ipcMain.removeAllListeners('get-window-size');
     ipcMain.removeAllListeners('take-screenshot');
     ipcMain.removeAllListeners('select-task');
-    ipcMain.removeAllListeners('start-screenshot');
-    ipcMain.removeAllListeners('stop-screenshot');
+    ipcMain.removeAllListeners('start-track');
+    ipcMain.removeAllListeners('stop-track');
   }
 
   if (cronjobHandler) {
@@ -337,44 +277,59 @@ try {
 
   // selected a task
   ipcMain.on('select-task', (event, arg) => {
-    selectedTaskId = arg['taskId'];
-    selectedProjectId = arg['projectId'];
-    if (contextMenu) {
-      contextMenu.items[0].enabled = true;
-      contextMenu.items[1].enabled = false;
+    if (currentProjectId === -1 && currentTaskId === -1 ) {
+      selectedTaskId = arg['taskId'];
+      selectedProjectId = arg['projectId'];
+      if (contextMenu) {
+        contextMenu.items[0].enabled = true;
+        contextMenu.items[1].enabled = false;
+      }
     }
-    event.sender.send('select-task-reply', arg);
   });
 
   // start to track
-  ipcMain.on('start-screenshot', (event, arg) => {console.log('start-screen')
+  ipcMain.on('start-track', (event, arg) => {
+    if (currentTaskId >= 0 && currentProjectId >= 0) {
+      if (currentTaskId !== arg['taskId'] || currentProjectId !== arg['projectId']) {
+        isTrack = false;
+        if (contextMenu) {
+          contextMenu.items[0].enabled = true;
+          contextMenu.items[1].enabled = false;
+        }
+        let newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
+        event.sender.send('stop-track-reply', newActivity);
+        clearData();
+      }
+    }
+
     isTrack = true;
-    const currentTimestamp = Date.now();
-    currentTaskId = arg['taskId'];
-    currentProjectId = arg['projectId'];
-    previousTimestamp = currentTimestamp;
-    takeScreenShots(currentTaskId, spanSeconds * 1000, true);
+
     if (contextMenu) {
       contextMenu.items[0].enabled = false;
       contextMenu.items[1].enabled = true;
     }
-    event.sender.send('start-screenshot-reply', {
+
+    currentTaskId = arg['taskId'];
+    currentProjectId = arg['projectId'];
+    previousTimestamp = Date.now();
+    takeScreenShots(currentTaskId, spanSeconds * 1000, true);
+    event.sender.send('start-track-reply', {
       taskId: arg['taskId'],
       projectId: arg['projectId']
     });
   });
 
   // stop to track
-  ipcMain.on('stop-screenshot', (event, arg) => {
+  ipcMain.on('stop-track', (event, arg) => {
     currentTaskId = arg['taskId'];
     currentProjectId = arg['projectId'];
     isTrack = false;
-    let newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
     if (contextMenu) {
       contextMenu.items[0].enabled = true;
       contextMenu.items[1].enabled = false;
     }
-    event.sender.send('stop-screenshot-reply', newActivity);
+    let newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
+    event.sender.send('stop-track-reply', newActivity);
     clearData();
   });
 
