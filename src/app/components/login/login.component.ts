@@ -3,6 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AlertService } from '../_services/alert.service';
 import { ElectronService } from 'ngx-electron';
+import { HttpService } from '../_services/http.service';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +21,7 @@ export class LoginComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private alertService: AlertService,
-    private _electronService: ElectronService
+    private _httpService: HttpService
   ) {}
 
   ngOnInit() {
@@ -55,25 +56,19 @@ export class LoginComponent implements OnInit {
     }
 
     this.loading = true;
-    this._electronService.ipcRenderer.send('login-call', {
-      url: '/trackly/login',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      formData: {
+    this._httpService.postCall(
+      'trackly/login', 
+      {
         email: this.f.email.value,
         password: this.f.password.value
-      }
-    });
-    this._electronService.ipcRenderer.once('login-call-reply', (event, arg) => {
-      if (arg['success'] && arg['token']) {
-        localStorage.setItem('userToken', arg['token']);
-        this.router.navigate([this.returnUrl]);
-      } else {
-        this.alertService.error('Wrong email or password.');
-        this.loading = false;
-      }
+    }).then((res) => {
+      console.log(res);
+      localStorage.setItem('userToken', this.f.email.value);
+      this.router.navigate([this.returnUrl]);
+    }).catch((err) => {
+      console.log('Login Error: ', err);
+      this.alertService.error('Wrong email or password.');
+      this.loading = false;
     });
   }
 }

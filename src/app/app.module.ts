@@ -28,6 +28,8 @@ import { routing } from './app.routing';
 import { AuthGuard } from './components/_guards/auth.guard';
 import { TimeConvertPipe } from './components/_pipes/time-convert.pipe';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { HttpService } from './components/_services/http.service';
+import { DataService } from './components/_services/data.service';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -64,7 +66,9 @@ export function HttpLoaderFactory(http: HttpClient) {
   providers: [
     ElectronService,
     AlertService,
-    AuthGuard
+    AuthGuard,
+    HttpService,
+    DataService
   ],
   bootstrap: [AppComponent]
 })

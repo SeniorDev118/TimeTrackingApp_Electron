@@ -1,41 +1,42 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ElectronService } from 'ngx-electron';
+import { HttpService } from '../_services/http.service';
+import { DataService } from '../_services/data.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit {
   isLoad: boolean;
 
   projects: Object[];
 
   constructor(
-    private _electronService: ElectronService
+    private _httpService: HttpService,
+    private _dataService: DataService,
+    private _router: Router
   ) {
     this.projects = [];
     this.isLoad = false;
   }
 
   ngOnInit() {
-    if(this._electronService.isElectronApp) {
-      this._electronService.ipcRenderer.send('projects-call', {
-        token: localStorage.getItem('userToken')
-      });
-      this._electronService.ipcRenderer.on('projects-call-reply', (event, arg) => {
-        console.log('projects: ', arg)
-        if (arg['success']) {
-          this.projects = arg['res'];
-        }
-        this.isLoad = true;
-      });
-    }
+    this._httpService.getCall('trackly/gets/projects').then((res) => {
+      console.log('project list: ', res.data)
+      this.projects = res.data;
+      this.isLoad = true;
+    }).catch((err) => {
+      console.log('Error to get project list', err);
+    });
   }
 
-  ngOnDestroy() {
-    if (this._electronService.ipcRenderer) {
-      this._electronService.ipcRenderer.removeAllListeners('projects-call-reply');
+  goToTaskPage(project: Object) {
+    if (project && project['id']) {
+      this._dataService.setProject(project);
+      this._router.navigate(['/task/' + project['id']]);
     }
   }
 

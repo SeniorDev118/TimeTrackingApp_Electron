@@ -8,3 +8,11 @@ html, body {
 a {
     cursor: pointer;
 }
+
+.pointer {
+    cursor: pointer;
+}
+
+.loading-container {
+    height: calc(100% - 56px);
+}
