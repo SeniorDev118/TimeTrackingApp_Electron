@@ -30,7 +30,7 @@ export class DataService {
   }
 
   setAcitivityListener() {
-    if(this._electronService.isElectronApp) {
+    if (this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('tray-icon-control', 'ping');
       this._electronService.ipcRenderer.on('tray-icon-control-reply', (event, arg) => {
         console.log('tray:', arg);
@@ -101,6 +101,15 @@ export class DataService {
     }
   }
 
+  stopTrack() {
+    if (this._electronService.isElectronApp) {
+      this._electronService.ipcRenderer.send('stop-track', {
+        taskId: this.currentTaskId,
+        projectId: this.currentPojectId
+      });
+    }
+  }
+
   setTasks(projectId: number) {
     this.tasks = [];
     this._httpService.getCall(
@@ -164,12 +173,12 @@ export class DataService {
     this.screenshotUrl = '';
   }
 
-  buildScreenshot(preUrl: string) {
+  buildScreenshot(preUrl: string, url: string) {
     this.fullscreenScreenshot((blob) => {
       this._httpService.uploadFile(preUrl, blob, 'image/png').then((res) => {
-        console.log('presign success: ');
+        console.log('Uploading screenshot is successful!: ', url);
       }).catch((err) => {
-        console.log(err)
+        console.log(err);
       });
     });
   }
@@ -180,7 +189,7 @@ export class DataService {
       this._httpService.postCall(
         `trackly/presign?file_name=${fileName}`).then((res) => {
           if (res.status === 200) {
-            this.buildScreenshot(res.data['s3_presign_url']);
+            this.buildScreenshot(res.data['s3_presign_url'], res.data['s3_url']);
             this.setScreenshotUrl(res.data['s3_url']);
             return resolve(res.data['s3_url']);
           } else {

@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { DataService } from '../_services/data.service';
 
 @Component({
   selector: 'app-header',
@@ -12,7 +13,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   sub: Subscription;
 
   constructor(
-    private router: Router
+    private router: Router,
+    private _dataService: DataService
   ) {
   }
 
@@ -40,6 +42,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   logout() {
     localStorage.removeItem('userToken');
+    this._dataService.stopTrack();
     this.router.navigate(['/login']);
   }
 

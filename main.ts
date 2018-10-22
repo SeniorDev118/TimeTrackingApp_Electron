@@ -73,15 +73,15 @@ function createWindow() {
   win = new BrowserWindow({
     // x: 0,
     // y: 0,
-    // width: 1280,
-    // height: 720,
-    width: 472,
-    height: 667,
+    width: 1280,
+    height: 720,
+    // width: 472,
+    // height: 667,
     center: true,
     minWidth: 472,
     minHeight: 667,
-    maxWidth: 472,
-    maxHeight: 667
+    // maxWidth: 472,
+    // maxHeight: 667
     // width: size.width,
     // height: size.height
   });
@@ -100,7 +100,7 @@ function createWindow() {
     }));
   }
 
-  // win.webContents.openDevTools();
+  win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
