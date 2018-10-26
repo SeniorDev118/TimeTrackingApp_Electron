@@ -163,7 +163,7 @@ export class DataService {
   }
 
   postActivity(activity: Object, nCount: number = 0) {
-    activity['screenshot_url'] = this.screenshotUrls;
+    activity['screenshot_urls'] = this.screenshotUrls;
     console.log('new activity: ', activity);
     this._httpService.postCall(
       'trackly/create/activity',

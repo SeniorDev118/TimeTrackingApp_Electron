@@ -107,6 +107,7 @@ function createWindow() {
     // Dereference the window object, usually you would store window
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
+    win.close();
     win = null;
   });
 
@@ -157,7 +158,7 @@ function createNewActivity(projectId, taskId, timestamp) {
     date: formatDate(new Date(timestamp)),
     from_time: formatDate(new Date(previousTimestamp)),
     to_time: formatDate(new Date(timestamp)),
-    screenshot_url: [],
+    screenshot_urls: [],
     mouse_click_count: mouseCount,
     keyboard_count: keyboardCount
   };

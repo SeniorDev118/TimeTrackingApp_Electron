@@ -2,6 +2,7 @@
 /release/
 /dist/
 /data/
+.DS_store
 *.js
 *.json
 *.js.map
