@@ -9,7 +9,7 @@ export class DataService {
   windowWidth: number;
   windowHeight: number;
   tasks: Object[];
-  screenshotUrls: string[];
+  screenshotUrls: Object[];
   currentProject: Object;
   currentProjectId: number;
   currentTaskId: number;
@@ -183,7 +183,10 @@ export class DataService {
   }
 
   setScreenshotUrl(url: string) {
-    this.screenshotUrls.push(url);
+    this.screenshotUrls.push({
+      url: url,
+      timestamp: Date.now()
+    });
     if (this.screenshotUrls.length > 3) {
       this.screenshotUrls.splice(0, 3);
     }
