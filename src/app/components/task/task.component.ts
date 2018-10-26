@@ -44,6 +44,7 @@ export class TaskComponent implements OnInit, OnDestroy {
     });
     this.tasksRouteSub = this._dataService.getTasksSubscribe().subscribe(res => {
       this.tasks = res['tasks'];
+      console.log(res)
       this.selectedTaskId = this._dataService.currentTaskId;
       this.isLoad = true;
     });

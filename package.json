@@ -17,11 +17,14 @@
   "iohook": {
     "targets": [
       "node-59",
+      "electron-47",
+      "electron-54",
       "electron-57"
     ],
     "platforms": [
       "win32",
-      "darwin"
+      "darwin",
+      "linux"
     ],
     "arches": [
       "x64",

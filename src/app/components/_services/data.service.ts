@@ -11,7 +11,7 @@ export class DataService {
   tasks: Object[];
   screenshotUrls: string[];
   currentProject: Object;
-  currentPojectId: number;
+  currentProjectId: number;
   currentTaskId: number;
 
   private tasksSubject: Subject<any>;
@@ -24,7 +24,7 @@ export class DataService {
     this.tasks = [];
     this.windowWidth = 0;
     this.windowHeight = 0;
-    this.currentPojectId = -1;
+    this.currentProjectId = -1;
     this.currentTaskId = -1;
     this.currentProject = {};
     this.tasksSubject = new Subject();
@@ -47,6 +47,16 @@ export class DataService {
             projectId: arg['projectId']
           });
         }
+      });
+
+      this._electronService.ipcRenderer.send('get-current-ids', 'ping');
+      this._electronService.ipcRenderer.on('get-current-ids-reply', (event, arg) => {
+        // let standardWidth = 480;
+        // this.windowWidth = standardWidth;
+        // this.windowHeight = arg.height * standardWidth / arg.width;
+        this.currentProjectId = arg.currentProjectId;
+        this.currentTaskId = arg.currentTaskId;
+        this.setTasksSubscribe();
       });
 
       this._electronService.ipcRenderer.send('get-window-size', 'ping');
@@ -72,7 +82,7 @@ export class DataService {
 
       this._electronService.ipcRenderer.on('start-track-reply', (event, arg) => {
         console.log('start-track-reply:', arg);
-        this.currentPojectId = arg['projectId'];
+        this.currentProjectId = arg['projectId'];
         this.currentTaskId = arg['taskId'];
 
         if (this.tasks.length > 0) {
@@ -86,7 +96,7 @@ export class DataService {
       });
 
       this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {
-        this.currentPojectId = -1;
+        this.currentProjectId = -1;
         this.currentTaskId = -1;
         if (this.tasks.length > 0) {
           for (let index = 0; index < this.tasks.length; index ++) {
@@ -108,7 +118,7 @@ export class DataService {
     if (this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('stop-track', {
         taskId: this.currentTaskId,
-        projectId: this.currentPojectId
+        projectId: this.currentProjectId
       });
     }
   }
@@ -122,7 +132,7 @@ export class DataService {
       if (res.data && res.data.length > 0) {
         this.tasks = res.data.map((item) => {
           item['timerStatus'] = 'InActive';
-          if (this.currentPojectId === projectId && this.currentTaskId === item['id']) {
+          if (this.currentProjectId === projectId && this.currentTaskId === item['id']) {
             item['timerStatus'] = 'Active';
           }
           return item;
@@ -141,7 +151,11 @@ export class DataService {
   }
 
   setTasksSubscribe() {
-    this.tasksSubject.next({tasks: this.tasks});
+    this.tasksSubject.next({
+      tasks: this.tasks,
+      currentProjectId: this.currentProjectId,
+      currentTaskId: this.currentTaskId
+    });
   }
 
   setProject(project: Object) {

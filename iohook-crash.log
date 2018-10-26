@@ -18,3 +18,24 @@ PID 6385 received SIGSEGV for address: 0x20
 16  libsystem_pthread.dylib             0x00007fff7e5c76c1 _pthread_body + 340
 17  libsystem_pthread.dylib             0x00007fff7e5c756d _pthread_body + 0
 18  libsystem_pthread.dylib             0x00007fff7e5c6c5d thread_start + 13
+PID 13654 received SIGSEGV for address: 0x20
+0   segfault-handler.node               0x0000000111bd8408 _ZL16segfault_handleriP9__siginfoPv + 312
+1   libsystem_platform.dylib            0x00007fff97929b3a _sigtramp + 26
+2   ???                                 0x0000000000000000 0x0 + 0
+3   iohook.node                         0x0000000111be954b process_button_released + 235
+4   iohook.node                         0x0000000111be8786 hook_event_proc + 870
+5   SkyLight                            0x00007fff93a39c80 processDecodedEventRef + 204
+6   SkyLight                            0x00007fff93a3946a processEventTapData + 544
+7   SkyLight                            0x00007fff93b0ece1 _XPostEventTapData + 280
+8   SkyLight                            0x00007fff93a391f4 eventTapMessageHandler + 137
+9   CoreFoundation                      0x00007fff81f9b1ed __CFMachPortPerform + 253
+10  CoreFoundation                      0x00007fff81f9b0d9 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__ + 41
+11  CoreFoundation                      0x00007fff81f9b051 __CFRunLoopDoSource1 + 465
+12  CoreFoundation                      0x00007fff81f92cc5 __CFRunLoopRun + 2389
+13  CoreFoundation                      0x00007fff81f92114 CFRunLoopRunSpecific + 420
+14  CoreFoundation                      0x00007fff81fd1b91 CFRunLoopRun + 97
+15  iohook.node                         0x0000000111be9d95 hook_run + 1749
+16  iohook.node                         0x0000000111be515e _Z16hook_thread_procPv + 14
+17  libsystem_pthread.dylib             0x00007fff9793393b _pthread_body + 180
+18  libsystem_pthread.dylib             0x00007fff97933887 _pthread_body + 0
+19  libsystem_pthread.dylib             0x00007fff9793308d thread_start + 13

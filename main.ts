@@ -108,7 +108,6 @@ function createWindow() {
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
     win = null;
-    Destroy();
   });
 
 }
@@ -213,6 +212,7 @@ function clearData() {
 
 function Destroy() {
   if (ipcMain) {
+    ipcMain.removeAllListeners('get-current-ids');
     ipcMain.removeAllListeners('get-window-size');
     ipcMain.removeAllListeners('take-screenshot');
     ipcMain.removeAllListeners('select-task');
@@ -247,9 +247,11 @@ try {
   app.on('window-all-closed', () => {
     // On OS X it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
-    if (process.platform !== 'darwin') {
-      app.quit();
-    }
+    // if (process.platform !== 'darwin') {
+
+    // }
+    Destroy();
+    app.quit();
   });
 
   app.on('activate', () => {
@@ -266,6 +268,13 @@ try {
       updateTracks(currentProjectId, currentTaskId, Date.now());
     }
   }, null, true, 'America/Los_Angeles');
+
+  ipcMain.on('get-current-ids', (event, arg) => {
+    event.sender.send('get-current-ids-reply', {
+      currentTaskId: currentTaskId,
+      currentProjectId: currentProjectId
+    });
+  });
 
   ipcMain.on('get-window-size', (event, arg) => {
     event.sender.send('get-window-size-reply', size);
