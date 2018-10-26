@@ -5,10 +5,11 @@ import { Subject, Observable } from 'rxjs';
 
 @Injectable()
 export class DataService {
-  screenshotUrl: string;
+  isTakingScreenShot: boolean;
   windowWidth: number;
   windowHeight: number;
   tasks: Object[];
+  screenshotUrls: string[];
   currentProject: Object;
   currentPojectId: number;
   currentTaskId: number;
@@ -19,7 +20,7 @@ export class DataService {
     private _electronService: ElectronService,
     private _httpService: HttpService
   ) {
-    this.screenshotUrl = '';
+    this.screenshotUrls = [];
     this.tasks = [];
     this.windowWidth = 0;
     this.windowHeight = 0;
@@ -27,6 +28,7 @@ export class DataService {
     this.currentTaskId = -1;
     this.currentProject = {};
     this.tasksSubject = new Subject();
+    this.isTakingScreenShot = false;
   }
 
   setAcitivityListener() {
@@ -60,10 +62,11 @@ export class DataService {
       this._electronService.ipcRenderer.on('create-new-activity-reply', (event, arg) => {
         this.postActivity(arg);
       });
-      
+
       this._electronService.ipcRenderer.send('take-screenshot', 'ping');
       this._electronService.ipcRenderer.on('take-screenshot-reply', (event, arg) => {
         console.log('take-screenshot-reply: ');
+        this.isTakingScreenShot = true;
         this.takecreenshot();
       });
 
@@ -120,7 +123,7 @@ export class DataService {
         this.tasks = res.data.map((item) => {
           item['timerStatus'] = 'InActive';
           if (this.currentPojectId === projectId && this.currentTaskId === item['id']) {
-            item['timerStatus'] = 'Active';  
+            item['timerStatus'] = 'Active';
           }
           return item;
         });
@@ -139,38 +142,41 @@ export class DataService {
 
   setTasksSubscribe() {
     this.tasksSubject.next({tasks: this.tasks});
-  } 
+  }
 
   setProject(project: Object) {
     this.currentProject = project;
   }
 
   postActivity(activity: Object, nCount: number = 0) {
-    activity['screenshot_url'] = this.screenshotUrl;
+    activity['screenshot_url'] = this.screenshotUrls;
     console.log('new activity: ', activity);
     this._httpService.postCall(
-        'trackly/create/activity',
-        activity
-      ).then(() => {
-        console.log('Activity creation is successful!');
-        this.clearData();
-      }).catch((err) => {
-        console.log('Activity creation error', err);
-        if (nCount < 20) {
-            nCount ++;
-            setTimeout(() => {
-              this.postActivity(activity, nCount);
-            }, 5 * 60 * 1000);
-        }
-      });
+      'trackly/create/activity',
+      activity
+    ).then(() => {
+      console.log('Activity creation is successful!');
+      this.clearData();
+    }).catch((err) => {
+      console.log('Activity creation error', err);
+      if (nCount < 20) {
+          nCount ++;
+          setTimeout(() => {
+            this.postActivity(activity, nCount);
+          }, 5 * 60 * 1000);
+      }
+    });
   }
 
   setScreenshotUrl(url: string) {
-    this.screenshotUrl = url;
+    this.screenshotUrls.push(url);
+    if (this.screenshotUrls.length > 3) {
+      this.screenshotUrls.splice(0, 3);
+    }
   }
 
   clearData() {
-    this.screenshotUrl = '';
+    this.screenshotUrls = [];
   }
 
   buildScreenshot(preUrl: string, url: string) {
@@ -183,14 +189,15 @@ export class DataService {
     });
   }
 
-  takecreenshot():Promise<any> {
+  takecreenshot(): Promise<any> {
     return new Promise((resolve, reject) => {
-      let fileName = Date.now() + '_screenshot.png';
+      const fileName = Date.now() + '_screenshot.png';
       this._httpService.postCall(
         `trackly/presign?file_name=${fileName}`).then((res) => {
           if (res.status === 200) {
             this.buildScreenshot(res.data['s3_presign_url'], res.data['s3_url']);
             this.setScreenshotUrl(res.data['s3_url']);
+            this.isTakingScreenShot = false;
             return resolve(res.data['s3_url']);
           } else {
             return reject();
@@ -203,12 +210,12 @@ export class DataService {
   }
 
   fullscreenScreenshot(callback: Function) {
-    let that = this;
-    let _callback = callback;
-    
-    let handleStream = (stream) => {
+    const that = this;
+    const _callback = callback;
+
+    const handleStream = (stream) => {
       // Create hidden video tag
-      let video = document.createElement('video');
+      const video = document.createElement('video');
       video.style.cssText = 'position:absolute;top:-10000px;left:-10000px;';
       // Event connected to stream
       video.onloadedmetadata = function () {
@@ -217,10 +224,10 @@ export class DataService {
         video.style.width = that.windowWidth + 'px'; // videoWidth
 
         // Create canvas
-        let canvas = document.createElement('canvas');
+        const canvas = document.createElement('canvas');
         canvas.width = that.windowWidth;
         canvas.height = that.windowHeight;
-        let ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d');
         // Draw video on canvas
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -239,23 +246,26 @@ export class DataService {
           // Destroy connect to stream
           stream.getTracks()[0].stop();
         } catch (e) {}
-      }
+      };
+
       video.src = URL.createObjectURL(stream);
       document.body.appendChild(video);
     };
 
-    let handleError = (e) => {
+    const handleError = (e) => {
       console.log(e);
     };
 
     // Filter only screen type
     this._electronService.desktopCapturer.getSources({types: ['screen']}, (error, sources) => {
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       // console.log(sources);
       for (let i = 0; i < sources.length; ++i) {
         // Filter: main screen
-        if (sources[i].name === "Entire screen") {
-          var nav = <any>navigator;
+        if (sources[i].name === 'Entire screen') {
+          const nav = <any>navigator;
           nav.getUserMedia  = nav.getUserMedia || nav.webkitGetUserMedia || nav.mozGetUserMedia || nav.msGetUserMedia;
           nav.getUserMedia({
             audio: false,

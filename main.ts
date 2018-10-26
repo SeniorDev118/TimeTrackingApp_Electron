@@ -3,13 +3,12 @@ import * as ioHook from 'iohook';
 import * as path from 'path';
 import * as url from 'url';
 import { CronJob } from 'cron';
-let win, serve, size, isTrack, keyboardCount, mouseCount;
-let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, timerHandler, cronjobHandler;
-let contextMenu, currentTaskId, currentProjectId, selectedTaskId, selectedProjectId, previousTimestamp, isMenuOpen;
+let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandlers;
+let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, cronjobHandler;
+let contextMenu, currentTaskId, currentProjectId, selectedTaskId, selectedProjectId, previousTimestamp;
 const spanSeconds = 60;
 const args = process.argv.slice(1);
 isTrack = false;
-isMenuOpen = false;
 keyboardCount = 0;
 mouseCount = 0;
 currentTaskId = -1;
@@ -18,11 +17,12 @@ selectedTaskId = -1;
 selectedProjectId = -1;
 previousTimestamp = 0;
 serve = args.some(val => val === '--serve');
+timerHandlers = [];
 
 function createWindow() {
   const iconPath = path.join(__dirname, 'tray.png');
 
-  const tray = new Tray(iconPath)
+  const tray = new Tray(iconPath);
   contextMenu = Menu.buildFromTemplate([
     {
       label: 'Start',
@@ -114,33 +114,32 @@ function createWindow() {
 }
 
 function formatDate(date) {
-  var hours = date.getHours();
-  var minutes = date.getMinutes();
-  var seconds = date.getSeconds();
+  let hours = date.getHours();
+  let minutes = date.getMinutes();
+  let seconds = date.getSeconds();
   hours = hours < 10 ? '0' + hours : hours;
-  minutes = minutes < 10 ? '0'+minutes : minutes;
-  seconds = seconds < 10 ? '0'+seconds : seconds;
-  var strTime = hours + ':' + minutes + ':' + seconds;
-  var years = date.getFullYear();
-  var months = date.getMonth() + 1;
-  var dates = date.getDate();
+  minutes = minutes < 10 ? '0' + minutes : minutes;
+  seconds = seconds < 10 ? '0' + seconds : seconds;
+  const strTime = hours + ':' + minutes + ':' + seconds;
+  const years = date.getFullYear();
+  const months = date.getMonth() + 1;
+  const dates = date.getDate();
   return years + '-' + months + '-' + dates + ' ' + strTime;
 }
 
 /**
- * 
- * @param projectId 
- * @param taskId 
- * @param timestamp 
- * @param isImmediate 
+ *
+ * @param projectId
+ * @param taskId
+ * @param timestamp
+ * @param isImmediate
  */
 function updateTracks(projectId, taskId, timestamp, isImmediate = false) {
   takeScreenShots(taskId, spanSeconds * 1000, isImmediate);
-  let newActivity = createNewActivity(projectId, taskId, timestamp);
+  const newActivity = createNewActivity(projectId, taskId, timestamp);
   console.log('---create activity---');
   console.log(newActivity);
   createNewActivityEvent.sender.send('create-new-activity-reply', newActivity);
-  
 }
 
 function createNewActivity(projectId, taskId, timestamp) {
@@ -159,7 +158,7 @@ function createNewActivity(projectId, taskId, timestamp) {
     date: formatDate(new Date(timestamp)),
     from_time: formatDate(new Date(previousTimestamp)),
     to_time: formatDate(new Date(timestamp)),
-    screenshot_url: '',
+    screenshot_url: [],
     mouse_click_count: mouseCount,
     keyboard_count: keyboardCount
   };
@@ -172,33 +171,32 @@ function createNewActivity(projectId, taskId, timestamp) {
 
 /**
  * take screenshots of desktop from UI
- * @param during 
- * @param isImmediate 
+ * @param during
+ * @param isImmediate
  */
 function takeScreenShots(taskId, during, isImmediate = false) {
   if (isImmediate) {
-    takeScreenshotEvent.sender.send('take-screenshot-reply', taskId);
+    timerHandlers[0] = takeScreenshotEvent.sender.send('take-screenshot-reply', taskId);
     return;
   }
 
   // take a screenshot in random
-  let time = Math.random() * during;
-  console.log('random time: ', time);
-  timerHandler = setTimeout(() => {
-    takeScreenshotEvent.sender.send('take-screenshot-reply', taskId); 
-  }, time);
-  // for (let index = 0; index < 3; index ++) {
-  //   let time = Math.random() * during;
-  //   setTimeout(() => {
-  //     takeScreenshotEvent.sender.send('take-screenshot-reply', taskId); 
-  //   }, time);
-  // }
+  console.log('--- start random screenshot ---');
+  for (let index = 0; index < 3; index ++) {
+    const time = Math.random() * during;
+    console.log('random time: ', time);
+    timerHandlers[index] = setTimeout(() => {
+      takeScreenshotEvent.sender.send('take-screenshot-reply', taskId);
+    }, time);
+  }
 }
 
 // stop interval
 function stopInterval() {
-  if (timerHandler) {
-    clearInterval(timerHandler);
+  for (let index = 0; index < 3; index ++) {
+    if (timerHandlers[index]) {
+      clearInterval(timerHandlers[index]);
+    }
   }
 }
 
@@ -227,16 +225,16 @@ function Destroy() {
   }
 }
 
-function parseCookies (rc) {
-  var list = {};
+// function parseCookies (rc) {
+//   var list = {};
 
-  rc && rc.split(';').forEach(function( cookie ) {
-      var parts = cookie.split('=');
-      list[parts.shift().trim()] = decodeURI(parts.join('='));
-  });
+//   rc && rc.split(';').forEach(function( cookie ) {
+//     var parts = cookie.split('=');
+//     list[parts.shift().trim()] = decodeURI(parts.join('='));
+//   });
 
-  return list;
-}
+//   return list;
+// }
 
 try {
 
@@ -298,7 +296,7 @@ try {
           contextMenu.items[0].enabled = true;
           contextMenu.items[1].enabled = false;
         }
-        let newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
+        const newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
         event.sender.send('stop-track-reply', newActivity);
         clearData();
       }
@@ -330,7 +328,7 @@ try {
       contextMenu.items[0].enabled = true;
       contextMenu.items[1].enabled = false;
     }
-    let newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
+    const newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
     event.sender.send('stop-track-reply', newActivity);
     clearData();
   });
