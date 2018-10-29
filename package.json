@@ -4,8 +4,8 @@
   "description": "Angular 6 with Electron (Typescript + SASS + Hot Reload)",
   "homepage": "https://github.com/maximegris/angular-electron",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "web star",
+    "email": "webstar@gmail.com"
   },
   "keywords": [
     "angular",
@@ -16,9 +16,7 @@
   ],
   "iohook": {
     "targets": [
-      "node-59",
-      "electron-47",
-      "electron-54",
+      "node-64",
       "electron-57"
     ],
     "platforms": [

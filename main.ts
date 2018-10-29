@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as url from 'url';
 import { CronJob } from 'cron';
 let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandlers;
-let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, cronjobHandler;
+let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, cronjobHandler, tray;
 let contextMenu, currentTaskId, currentProjectId, selectedTaskId, selectedProjectId, previousTimestamp;
 const spanSeconds = 60;
 const args = process.argv.slice(1);
@@ -22,7 +22,7 @@ timerHandlers = [];
 function createWindow() {
   const iconPath = path.join(__dirname, 'tray.png');
 
-  const tray = new Tray(iconPath);
+  tray = new Tray(iconPath);
   contextMenu = Menu.buildFromTemplate([
     {
       label: 'Start',
@@ -107,7 +107,7 @@ function createWindow() {
     // Dereference the window object, usually you would store window
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
-    win.close();
+    // win.close();
     win = null;
   });
 
@@ -211,7 +211,7 @@ function clearData() {
   stopInterval();
 }
 
-function Destroy() {
+function destroyListners() {
   if (ipcMain) {
     ipcMain.removeAllListeners('get-current-ids');
     ipcMain.removeAllListeners('get-window-size');
@@ -251,7 +251,6 @@ try {
     // if (process.platform !== 'darwin') {
 
     // }
-    Destroy();
     app.quit();
   });
 
@@ -261,6 +260,13 @@ try {
     if (win === null) {
       createWindow();
     }
+  });
+
+  app.on('before-quit', function (evt) {
+    tray.destroy();
+    destroyListners();
+    win.removeAllListeners('close');
+    win.close();
   });
 
   cronjobHandler = new CronJob('0 */1 * * * *', function() {

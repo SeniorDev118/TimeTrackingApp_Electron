@@ -34,7 +34,7 @@
   "linux": {
     "icon": "dist/favicon.png",
     "target": [
-      "AppImage"
+      "deb"
     ]
   }
 }
