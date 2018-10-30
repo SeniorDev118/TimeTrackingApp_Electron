@@ -219,6 +219,8 @@ function destroyListners() {
     ipcMain.removeAllListeners('select-task');
     ipcMain.removeAllListeners('start-track');
     ipcMain.removeAllListeners('stop-track');
+    ipcMain.removeAllListeners('create-new-activity');
+    ipcMain.removeAllListeners('tray-icon-control');
   }
 
   if (cronjobHandler) {
@@ -263,10 +265,14 @@ try {
   });
 
   app.on('before-quit', function (evt) {
-    tray.destroy();
+    if (tray) {
+      tray.destroy();
+      tray = null;
+    }
+    setTimeout(() => {
+      ioHook.stop();
+    }, 100);
     destroyListners();
-    win.removeAllListeners('close');
-    win.close();
   });
 
   cronjobHandler = new CronJob('0 */1 * * * *', function() {
