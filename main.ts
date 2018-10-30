@@ -20,51 +20,6 @@ serve = args.some(val => val === '--serve');
 timerHandlers = [];
 
 function createWindow() {
-  const iconPath = path.join(__dirname, 'tray.png');
-
-  tray = new Tray(iconPath);
-  contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Start',
-      click: function() {
-        if (selectedTaskId >= 0 && selectedProjectId >= 0 && trayControlEvent) {
-          trayControlEvent.sender.send('tray-icon-control-reply', {
-            status: 'start',
-            taskId: selectedTaskId,
-            projectId: selectedProjectId
-          });
-        }
-      }
-    },
-    {
-      label: 'Stop',
-      click: function() {
-        if (currentTaskId >= 0 && currentProjectId >= 0 && trayControlEvent) {
-          trayControlEvent.sender.send('tray-icon-control-reply', {
-            status: 'stop',
-            taskId: currentTaskId,
-            projectId: currentProjectId
-          });
-        }
-      }
-    },
-    // {
-    //   label: 'Quit',
-    //   accelerator: 'Command+Q',
-    //   click: function() {
-    //     app.quit();
-    //   }
-    // }
-  ]);
-
-  setTimeout(() => {
-    tray.setToolTip('Time Tracker');
-    tray.setContextMenu(contextMenu);
-    if (contextMenu) {
-      contextMenu.items[0].enabled = false;
-      contextMenu.items[1].enabled = false;
-    }
-  }, 100);
 
   const electronScreen = screen;
   size = electronScreen.getPrimaryDisplay().workAreaSize;
@@ -102,7 +57,52 @@ function createWindow() {
     }));
   }
 
-  win.webContents.openDevTools();
+  const iconPath = path.join(__dirname, 'tray.png');
+
+  tray = new Tray(iconPath);
+  contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Start',
+      click: function() {
+        if (selectedTaskId >= 0 && selectedProjectId >= 0 && trayControlEvent) {
+          trayControlEvent.sender.send('tray-icon-control-reply', {
+            status: 'start',
+            taskId: selectedTaskId,
+            projectId: selectedProjectId
+          });
+        }
+      }
+    },
+    {
+      label: 'Stop',
+      click: function() {
+        if (currentTaskId >= 0 && currentProjectId >= 0 && trayControlEvent) {
+          trayControlEvent.sender.send('tray-icon-control-reply', {
+            status: 'stop',
+            taskId: currentTaskId,
+            projectId: currentProjectId
+          });
+        }
+      }
+    },
+    // {
+    //   label: 'Quit',
+    //   accelerator: 'Command+Q',
+    //   click: function() {
+    //     app.quit();
+    //   }
+    // }
+  ]);
+
+  if (contextMenu) {
+    contextMenu.items[0].enabled = false;
+    contextMenu.items[1].enabled = false;
+  }
+
+  tray.setToolTip('Time Tracker');
+  tray.setContextMenu(contextMenu);
+
+  // win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -311,6 +311,7 @@ try {
       if (contextMenu) {
         contextMenu.items[0].enabled = true;
         contextMenu.items[1].enabled = false;
+        tray.setContextMenu(contextMenu);
       }
     }
   });
@@ -323,6 +324,7 @@ try {
         if (contextMenu) {
           contextMenu.items[0].enabled = true;
           contextMenu.items[1].enabled = false;
+          tray.setContextMenu(contextMenu);
         }
         const newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
         event.sender.send('stop-track-reply', newActivity);
@@ -335,6 +337,7 @@ try {
     if (contextMenu) {
       contextMenu.items[0].enabled = false;
       contextMenu.items[1].enabled = true;
+      tray.setContextMenu(contextMenu);
     }
 
     currentTaskId = arg['taskId'];
@@ -358,6 +361,7 @@ try {
     if (contextMenu) {
       contextMenu.items[0].enabled = false;
       contextMenu.items[1].enabled = false;
+      tray.setContextMenu(contextMenu);
     }
   });
 
