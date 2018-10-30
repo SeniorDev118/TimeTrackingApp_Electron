@@ -81,7 +81,9 @@ function createWindow() {
     minWidth: 472,
     minHeight: 667,
     maxWidth: 472,
-    maxHeight: 667
+    maxHeight: 667,
+    maximizable: false,
+    minimizable: false
     // width: size.width,
     // height: size.height
   });
@@ -100,7 +102,7 @@ function createWindow() {
     }));
   }
 
-  // win.webContents.openDevTools();
+  win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -302,6 +304,10 @@ try {
     if (currentProjectId === -1 && currentTaskId === -1 ) {
       selectedTaskId = arg['taskId'];
       selectedProjectId = arg['projectId'];
+      event.sender.send('get-current-ids-reply', {
+        currentTaskId: selectedTaskId,
+        currentProjectId: selectedProjectId
+      });
       if (contextMenu) {
         contextMenu.items[0].enabled = true;
         contextMenu.items[1].enabled = false;
@@ -346,13 +352,13 @@ try {
     currentTaskId = arg['taskId'];
     currentProjectId = arg['projectId'];
     isTrack = false;
-    if (contextMenu) {
-      contextMenu.items[0].enabled = true;
-      contextMenu.items[1].enabled = false;
-    }
     const newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
     event.sender.send('stop-track-reply', newActivity);
     clearData();
+    if (contextMenu) {
+      contextMenu.items[0].enabled = false;
+      contextMenu.items[1].enabled = false;
+    }
   });
 
   ipcMain.on('tray-icon-control', (event, arg) => {

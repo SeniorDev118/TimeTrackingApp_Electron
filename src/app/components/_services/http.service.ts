@@ -1,13 +1,16 @@
 import { Injectable } from '@angular/core';
 import * as axios from 'axios';
 import { AppConfig } from '../../../environments/environment';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class HttpService {
 
-  constructor() { }
+  constructor(
+    private router: Router
+  ) { }
 
-  postCall(url: string, data: any = {}):Promise<any> {
+  postCall(url: string, data: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
       axios.default.post(
         `${AppConfig.apiUrl}/${url}`,
@@ -19,12 +22,14 @@ export class HttpService {
           reject();
         }
       }).catch((err) => {
+        console.log(err)
+        this.handleUnAuthetication();
         reject(err);
       });
     });
   }
 
-  getCall(url: string):Promise<any> {
+  getCall(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
       axios.default.get(
         `${AppConfig.apiUrl}/${url}`
@@ -35,12 +40,13 @@ export class HttpService {
           reject();
         }
       }).catch((err) => {
+        this.handleUnAuthetication();
         reject(err);
       });
     });
   }
 
-  uploadFile(url: string, blob: any, mime: string):Promise<any> {
+  uploadFile(url: string, blob: any, mime: string): Promise<any> {
     return new Promise((resolve, reject) => {
       axios.default.put(
         url,
@@ -58,8 +64,14 @@ export class HttpService {
             reject();
           }
         }).catch((err) => {
+          this.handleUnAuthetication();
           reject(err);
         });
     });
+  }
+
+  handleUnAuthetication() {
+    // localStorage.removeItem('userToken');
+    // this.router.navigate(['/login']);
   }
 }

@@ -44,7 +44,7 @@ export class TaskComponent implements OnInit, OnDestroy {
     });
     this.tasksRouteSub = this._dataService.getTasksSubscribe().subscribe(res => {
       this.tasks = res['tasks'];
-      console.log(res)
+      console.log('tasks detail:', res);
       this.selectedTaskId = this._dataService.currentTaskId;
       this.isLoad = true;
     });
@@ -64,7 +64,7 @@ export class TaskComponent implements OnInit, OnDestroy {
     event.stopPropagation();
 
     this.selectedTaskId = taskId;
-    if(this._electronService.isElectronApp) {
+    if (this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('start-track', {
         taskId: taskId,
         projectId: this.projectId
@@ -74,7 +74,7 @@ export class TaskComponent implements OnInit, OnDestroy {
 
   onStopScreenshot(taskId: number) {
     this.selectedTaskId = taskId;
-    if(this._electronService.isElectronApp) {
+    if (this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('stop-track', {
         taskId: taskId,
         projectId: this.projectId
