@@ -95,7 +95,7 @@ export class DataService {
         }
       });
 
-      this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {
+      this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {console.log('stop-track-reply:', arg);
         this.currentProjectId = -1;
         this.currentTaskId = -1;
         if (this.tasks.length > 0) {

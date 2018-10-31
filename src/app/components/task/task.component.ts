@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { AlertService } from '../_services/alert.service';
 import { ElectronService } from 'ngx-electron';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -23,7 +22,6 @@ export class TaskComponent implements OnInit, OnDestroy {
 
 
   constructor(
-    private alertService: AlertService,
     private _electronService: ElectronService,
     private activeRoute: ActivatedRoute,
     private _dataService: DataService

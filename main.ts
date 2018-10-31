@@ -102,7 +102,7 @@ function createWindow() {
   tray.setToolTip('Time Tracker');
   tray.setContextMenu(contextMenu);
 
-  // win.webContents.openDevTools();
+  win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -304,10 +304,6 @@ try {
     if (currentProjectId === -1 && currentTaskId === -1 ) {
       selectedTaskId = arg['taskId'];
       selectedProjectId = arg['projectId'];
-      event.sender.send('get-current-ids-reply', {
-        currentTaskId: selectedTaskId,
-        currentProjectId: selectedProjectId
-      });
       if (contextMenu) {
         contextMenu.items[0].enabled = true;
         contextMenu.items[1].enabled = false;
