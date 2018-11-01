@@ -23,7 +23,7 @@
               <i class="fa fa-play-circle-o" aria-hidden="true"></i>
             </a>
             <ng-template #playEle>
-              <a (click)="onStopScreenshot(task.id)">
+              <a (click)="onStopScreenshot(task.id, $event)">
                 <i class="fa fa-stop-circle-o" aria-hidden="true"></i>
               </a>
             </ng-template>

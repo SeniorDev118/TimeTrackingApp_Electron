@@ -70,7 +70,9 @@ export class TaskComponent implements OnInit, OnDestroy {
     }
   }
 
-  onStopScreenshot(taskId: number) {
+  onStopScreenshot(taskId: number, event: any) {
+    event.stopPropagation();
+
     this.selectedTaskId = taskId;
     if (this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('stop-track', {

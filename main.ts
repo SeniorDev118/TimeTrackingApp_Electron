@@ -102,7 +102,7 @@ function createWindow() {
   tray.setToolTip('Time Tracker');
   tray.setContextMenu(contextMenu);
 
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -210,6 +210,8 @@ function clearData() {
   previousTimestamp = 0;
   currentTaskId = -1;
   currentProjectId = -1;
+  selectedProjectId = -1;
+  selectedTaskId = -1;
   stopInterval();
 }
 
@@ -348,10 +350,8 @@ try {
 
   // stop to track
   ipcMain.on('stop-track', (event, arg) => {
-    currentTaskId = arg['taskId'];
-    currentProjectId = arg['projectId'];
     isTrack = false;
-    const newActivity = createNewActivity(currentProjectId, currentTaskId, Date.now());
+    const newActivity = createNewActivity(arg['projectId'], arg['taskId'], Date.now());
     event.sender.send('stop-track-reply', newActivity);
     clearData();
     if (contextMenu) {
