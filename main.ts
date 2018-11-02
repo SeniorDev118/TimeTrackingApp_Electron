@@ -218,6 +218,7 @@ function clearData() {
 function destroyListners() {
   if (ipcMain) {
     ipcMain.removeAllListeners('get-current-ids');
+    ipcMain.removeAllListeners('get-selected-ids');
     ipcMain.removeAllListeners('get-window-size');
     ipcMain.removeAllListeners('take-screenshot');
     ipcMain.removeAllListeners('select-task');
@@ -293,6 +294,13 @@ try {
     });
   });
 
+  ipcMain.on('get-selected-ids', (event, arg) => {
+    event.sender.send('get-selected-ids-reply', {
+      selectedTaskId: selectedTaskId,
+      selectedProjectId: selectedProjectId
+    });
+  });
+
   ipcMain.on('get-window-size', (event, arg) => {
     event.sender.send('get-window-size-reply', size);
   });
@@ -303,14 +311,17 @@ try {
 
   // selected a task
   ipcMain.on('select-task', (event, arg) => {
-    if (currentProjectId === -1 && currentTaskId === -1 ) {
-      selectedTaskId = arg['taskId'];
-      selectedProjectId = arg['projectId'];
-      if (contextMenu) {
-        contextMenu.items[0].enabled = true;
-        contextMenu.items[1].enabled = false;
-        tray.setContextMenu(contextMenu);
-      }
+    selectedTaskId = parseInt(arg['taskId'], 10);
+    selectedProjectId = parseInt(arg['projectId'], 10);
+    event.sender.send('get-selected-ids-reply', {
+      selectedTaskId: selectedTaskId,
+      selectedProjectId: selectedProjectId
+    });
+
+    if (contextMenu) {
+      contextMenu.items[0].enabled = true;
+      contextMenu.items[1].enabled = false;
+      tray.setContextMenu(contextMenu);
     }
   });
 
@@ -339,12 +350,16 @@ try {
     }
 
     currentTaskId = arg['taskId'];
+    selectedTaskId = arg['taskId'];
     currentProjectId = arg['projectId'];
+    selectedProjectId = arg['projectId'];
     previousTimestamp = Date.now();
     takeScreenShots(currentTaskId, spanSeconds * 1000, true);
     event.sender.send('start-track-reply', {
-      taskId: arg['taskId'],
-      projectId: arg['projectId']
+      currentTaskId: currentTaskId,
+      currentProjectId: currentProjectId,
+      selectedTaskId: selectedTaskId,
+      selectedProjectId: selectedProjectId
     });
   });
 

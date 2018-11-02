@@ -13,6 +13,8 @@ export class DataService {
   currentProject: Object;
   currentProjectId: number;
   currentTaskId: number;
+  selectedTaskId: number;
+  selectedProjectId: number;
 
   private tasksSubject: Subject<any>;
 
@@ -26,6 +28,8 @@ export class DataService {
     this.windowHeight = 0;
     this.currentProjectId = -1;
     this.currentTaskId = -1;
+    this.selectedTaskId = -1;
+    this.selectedProjectId = -1;
     this.currentProject = {};
     this.tasksSubject = new Subject();
     this.isTakingScreenShot = false;
@@ -51,19 +55,20 @@ export class DataService {
 
       this._electronService.ipcRenderer.send('get-current-ids', 'ping');
       this._electronService.ipcRenderer.on('get-current-ids-reply', (event, arg) => {
-        // let standardWidth = 480;
-        // this.windowWidth = standardWidth;
-        // this.windowHeight = arg.height * standardWidth / arg.width;
-        this.currentProjectId = arg.currentProjectId;
-        this.currentTaskId = arg.currentTaskId;
+        this.currentProjectId = parseInt(arg.currentProjectId, 10);
+        this.currentTaskId = parseInt(arg.currentTaskId, 10);
+        this.setTasksSubscribe();
+      });
+
+      this._electronService.ipcRenderer.send('get-selected-ids', 'ping');
+      this._electronService.ipcRenderer.on('get-selected-ids-reply', (event, arg) => {
+        this.selectedTaskId = parseInt(arg.selectedTaskId, 10);
+        this.selectedProjectId = parseInt(arg.selectedProjectId, 10);
         this.setTasksSubscribe();
       });
 
       this._electronService.ipcRenderer.send('get-window-size', 'ping');
       this._electronService.ipcRenderer.on('get-window-size-reply', (event, arg) => {
-        // let standardWidth = 480;
-        // this.windowWidth = standardWidth;
-        // this.windowHeight = arg.height * standardWidth / arg.width;
         this.windowWidth = arg.width;
         this.windowHeight = arg.height;
       });
@@ -82,12 +87,14 @@ export class DataService {
 
       this._electronService.ipcRenderer.on('start-track-reply', (event, arg) => {
         console.log('start-track-reply:', arg);
-        this.currentProjectId = arg['projectId'];
-        this.currentTaskId = arg['taskId'];
+        this.currentProjectId = arg['currentProjectId'];
+        this.currentTaskId = arg['currentTaskId'];
+        this.selectedProjectId = arg['selectedProjectId'];
+        this.selectedTaskId = arg['selectedTaskId'];
 
         if (this.tasks.length > 0) {
           for (let index = 0; index < this.tasks.length; index ++) {
-            if (this.tasks[index]['id'] === arg['taskId']) {
+            if (this.tasks[index]['id'] === this.currentTaskId) {
               this.tasks[index]['timerStatus'] = 'Active';
             }
           }
@@ -95,9 +102,12 @@ export class DataService {
         }
       });
 
-      this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {console.log('stop-track-reply:', arg);
+      this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {
+        console.log('stop-track-reply:', arg);
         this.currentProjectId = -1;
         this.currentTaskId = -1;
+        this.selectedProjectId = -1;
+        this.selectedTaskId = -1;
         if (this.tasks.length > 0) {
           for (let index = 0; index < this.tasks.length; index ++) {
             if (this.tasks[index]['id'] === arg['task_id']) {
@@ -154,7 +164,9 @@ export class DataService {
     this.tasksSubject.next({
       tasks: this.tasks,
       currentProjectId: this.currentProjectId,
-      currentTaskId: this.currentTaskId
+      currentTaskId: this.currentTaskId,
+      selectedProjectId: this.selectedProjectId,
+      selectedTaskId: this.selectedTaskId
     });
   }
 
