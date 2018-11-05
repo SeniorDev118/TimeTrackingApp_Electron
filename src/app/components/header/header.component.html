@@ -1,10 +1,14 @@
 <nav class="navbar navbar-dark bg-dark">
+  <!-- Logo Content start -->
   <a class="navbar-brand" [routerLink]="['/dashboard']">TimeTracker</a>
+  <!-- Logo Content end -->
   <!-- <div class="navbar-expand mr-auto" *ngIf="isLogin">
     <div class="navbar-nav">
       <a class="nav-item nav-link" [ngClass]="{'active': path === '/'}" [routerLink]="['/']">Home</a>
     </div>
   </div> -->
+
+  <!-- Logout start -->
   <div class="navbar-expand ml-auto navbar-nav">
     <div class="navbar-nav">
       <a class="nav-item nav-link" (click)="logout()" *ngIf="isLogin">
@@ -12,4 +16,5 @@
       </a>
     </div>
   </div>
+  <!-- Logout end -->
 </nav>

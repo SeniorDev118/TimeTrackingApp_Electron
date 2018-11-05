@@ -10,15 +10,15 @@ import { DataService } from '../_services/data.service';
   styleUrls: ['./task.component.scss']
 })
 export class TaskComponent implements OnInit, OnDestroy {
-  tasks: Object[];
-  isLoad: boolean;
-  projectName: string;
-  windowWidth: number;
-  windowHeight: number;
-  selectedTaskId: number;
-  projectId: number;
-  activeRouteSub: Subscription;
-  tasksRouteSub: Subscription;
+  tasks: Object[]; // task list
+  isLoad: boolean; // page load flag
+  projectName: string; // project name
+  windowWidth: number; // window width
+  windowHeight: number; // window height
+  selectedTaskId: number; // task id selected
+  projectId: number; // project id
+  activeRouteSub: Subscription; // route subscription
+  tasksSub: Subscription; // tasks subscription
 
 
   constructor(
@@ -48,7 +48,7 @@ export class TaskComponent implements OnInit, OnDestroy {
     /**
      * tasks subscription listener
      */
-    this.tasksRouteSub = this._dataService.getTasksSubscribe().subscribe(res => {
+    this.tasksSub = this._dataService.getTasksSubscribe().subscribe(res => {
       this.tasks = res['tasks'];
       this.selectedTaskId = -1;
       console.log('tasks detail:', res, this.projectId);
@@ -63,13 +63,16 @@ export class TaskComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * destory subscriptions
+   */
   ngOnDestroy() {
     if (this.activeRouteSub) {
       this.activeRouteSub.unsubscribe();
     }
 
-    if (this.tasksRouteSub) {
-      this.tasksRouteSub.unsubscribe();
+    if (this.tasksSub) {
+      this.tasksSub.unsubscribe();
     }
   }
 

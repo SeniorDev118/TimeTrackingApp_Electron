@@ -1,7 +1,9 @@
 <div class="login-container">
   <div class="wrapper">
     <h2 class="text-center">Login</h2>
+    <!-- login form start -->
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <!-- email field start -->
       <div class="form-group">
         <label for="email">Email</label>
         <input type="email" formControlName="email" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.email.errors }" />
@@ -12,6 +14,8 @@
           </div>
         </div>
       </div>
+      <!-- email field end -->
+      <!-- password field start -->
       <div class="form-group">
         <label for="password">Password</label>
         <input type="password" formControlName="password" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.password.errors }" />
@@ -22,6 +26,8 @@
           </div>
         </div>
       </div>
+      <!-- password field end -->
+      <!-- login button start -->
       <div class="form-group mt-4">
         <button [disabled]="loading" class="btn btn-primary">
           <div *ngIf="!loading; else loadSpinnerEle">Login</div>
@@ -30,6 +36,8 @@
           </ng-template>
         </button>
       </div>
+      <!-- login button end -->
     </form>
+    <!-- login form end -->
   </div>
 </div>

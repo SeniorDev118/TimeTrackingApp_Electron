@@ -9,8 +9,8 @@ import { DataService } from '../_services/data.service';
   styleUrls: ['./header.component.scss']
 })
 export class HeaderComponent implements OnInit, OnDestroy {
-  isLogin: boolean;
-  sub: Subscription;
+  isLogin: boolean; // user login flag
+  sub: Subscription; // router navigation subscription
 
   constructor(
     private router: Router,
@@ -19,6 +19,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    /** router navigation subscribe */
     this.sub = this.router.events.subscribe((s) => {
       if (s instanceof NavigationEnd) {
         this.initData();
@@ -27,6 +28,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    // destroy subscriptions
     if (this.sub) {
       this.sub.unsubscribe();
     }

@@ -18,11 +18,14 @@ export class DashboardComponent implements OnInit {
     private _dataService: DataService,
     private _router: Router
   ) {
-    this.projects = [];
-    this.isLoad = false;
+    this.projects = []; // project list
+    this.isLoad = false; // page load flag
   }
 
   ngOnInit() {
+    /**
+     * get project list
+     */
     this._httpService.getCall('trackly/gets/projects').then((res) => {
       console.log('project list: ', res.data);
       this.projects = res.data;

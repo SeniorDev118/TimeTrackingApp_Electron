@@ -11,10 +11,10 @@ import { HttpService } from '../_services/http.service';
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent implements OnInit {
-  loginForm: FormGroup;
-  loading = false;
-  submitted = false;
-  returnUrl: string;
+  loginForm: FormGroup; // login form
+  loading = false; // page load flag
+  submitted = false; // submit form flag
+  returnUrl: string; // return url
 
   constructor(
     private formBuilder: FormBuilder,
@@ -25,6 +25,7 @@ export class LoginComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    /** define login form */
     this.loginForm = this.formBuilder.group({
       email: ['', [
         Validators.required,

@@ -1,8 +1,11 @@
 <div class="project-container m-3" *ngIf="isLoad; else loadEle">
+  <!-- title start -->
   <div class="mb-3">
     <h3>Dashboard</h3>
   </div>
+  <!-- title end -->
   
+  <!-- project list start -->
   <div class="project-list-container">
     <ul class="list-group">
       <li
@@ -10,26 +13,19 @@
         *ngFor="let project of projects; let ind = index"
         (click)="goToTaskPage(project)"
       >
+        <!-- project name start -->
         <div>{{ project?.name }}</div>
-        <!-- <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <a *ngIf="project.status === 'DeActive'; else playEle">
-              <i class="fa fa-play-circle-o" aria-hidden="true"></i>
-            </a>
-            <ng-template #playEle>
-              <a (click)="onStopScreenshot(project.id)">
-                <i class="fa fa-stop-circle-o" aria-hidden="true"></i>
-              </a>
-            </ng-template>
-          </div>
-        </div> -->
+        <!-- project name end -->
       </li>
     </ul>
   </div>
+  <!-- project list end -->
 </div>
 
+<!-- load start -->
 <ng-template #loadEle>
   <div class="d-flex justify-content-center align-items-center loading-container">
     <i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
   </div>
 </ng-template>
+<!-- load end -->
