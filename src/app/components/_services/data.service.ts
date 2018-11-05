@@ -5,18 +5,18 @@ import { Subject, Observable } from 'rxjs';
 
 @Injectable()
 export class DataService {
-  isTakingScreenShot: boolean;
-  windowWidth: number;
-  windowHeight: number;
-  tasks: Object[];
-  screenshotUrls: Object[];
-  currentProject: Object;
-  currentProjectId: number;
-  currentTaskId: number;
-  selectedTaskId: number;
-  selectedProjectId: number;
+  isTakingScreenShot: boolean; // taking screenshot flag
+  windowWidth: number; // window width
+  windowHeight: number; // window height
+  tasks: Object[]; // tasks
+  screenshotUrls: Object[]; // screenshot urls for one activity
+  currentProject: Object; // current project detail
+  currentProjectId: number; // current project id
+  currentTaskId: number; // current task id
+  selectedTaskId: number; // selected task id
+  selectedProjectId: number; // selected project id
 
-  private tasksSubject: Subject<any>;
+  private tasksSubject: Subject<any>; // tasks subscription
 
   constructor(
     private _electronService: ElectronService,
@@ -40,6 +40,9 @@ export class DataService {
    */
   setAcitivityListener() {
     if (this._electronService.isElectronApp) {
+      /**
+       * tray icon control
+       */
       this._electronService.ipcRenderer.send('tray-icon-control', 'ping');
       this._electronService.ipcRenderer.on('tray-icon-control-reply', (event, arg) => {
         console.log('tray:', arg);
@@ -56,6 +59,9 @@ export class DataService {
         }
       });
 
+      /**
+       * get current project and task id event
+       */
       this._electronService.ipcRenderer.send('get-current-ids', 'ping');
       this._electronService.ipcRenderer.on('get-current-ids-reply', (event, arg) => {
         this.currentProjectId = parseInt(arg.currentProjectId, 10);
@@ -63,6 +69,9 @@ export class DataService {
         this.setTasksSubscribe();
       });
 
+      /**
+       * get selected project and task id event
+       */
       this._electronService.ipcRenderer.send('get-selected-ids', 'ping');
       this._electronService.ipcRenderer.on('get-selected-ids-reply', (event, arg) => {
         this.selectedTaskId = parseInt(arg.selectedTaskId, 10);
@@ -70,17 +79,26 @@ export class DataService {
         this.setTasksSubscribe();
       });
 
+      /**
+       * get window size event
+       */
       this._electronService.ipcRenderer.send('get-window-size', 'ping');
       this._electronService.ipcRenderer.on('get-window-size-reply', (event, arg) => {
         this.windowWidth = arg.width;
         this.windowHeight = arg.height;
       });
 
+      /**
+       * create new activity event
+       */
       this._electronService.ipcRenderer.send('create-new-activity', 'ping');
       this._electronService.ipcRenderer.on('create-new-activity-reply', (event, arg) => {
         this.postActivity(arg);
       });
 
+      /**
+       * take screenshot event
+       */
       this._electronService.ipcRenderer.send('take-screenshot', 'ping');
       this._electronService.ipcRenderer.on('take-screenshot-reply', (event, arg) => {
         console.log('take-screenshot-reply: ');
@@ -88,6 +106,9 @@ export class DataService {
         this.takecreenshot();
       });
 
+      /**
+       * start track event
+       */
       this._electronService.ipcRenderer.on('start-track-reply', (event, arg) => {
         console.log('start-track-reply:', arg);
         this.currentProjectId = arg['currentProjectId'];
@@ -105,6 +126,9 @@ export class DataService {
         }
       });
 
+      /**
+       * stop track event
+       */
       this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {
         console.log('stop-track-reply:', arg);
         this.currentProjectId = -1;

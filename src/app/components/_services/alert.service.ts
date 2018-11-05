@@ -4,8 +4,8 @@ import { Observable, Subject } from 'rxjs';
 
 @Injectable()
 export class AlertService {
-  private subject = new Subject<any>();
-  private keepAfterNavigationChange = false;
+  private subject = new Subject<any>(); // alert message subscribe subject
+  private keepAfterNavigationChange = false; // flag to keep the message after navigation change
 
   constructor(private router: Router) {
     // clear alert message on route change
