@@ -16,9 +16,15 @@ export class AppComponent {
     private _dataService: DataService
   ) {
 
+    /**
+     * set language
+     */
     translate.setDefaultLang('en');
     console.log('AppConfig', AppConfig);
 
+    /**
+     * check envrionment
+     */
     if (electronService.isElectron()) {
       this._dataService.setAcitivityListener();
       console.log('Mode electron');
