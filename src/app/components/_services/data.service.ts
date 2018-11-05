@@ -35,6 +35,9 @@ export class DataService {
     this.isTakingScreenShot = false;
   }
 
+  /**
+   * set listeners
+   */
   setAcitivityListener() {
     if (this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('tray-icon-control', 'ping');
@@ -124,6 +127,9 @@ export class DataService {
     }
   }
 
+  /**
+   * stop track
+   */
   stopTrack() {
     if (this._electronService.isElectronApp) {
       this._electronService.ipcRenderer.send('stop-track', {
@@ -133,6 +139,10 @@ export class DataService {
     }
   }
 
+  /**
+   * set tasks of specific project
+   * @param projectId: project id
+   */
   setTasks(projectId: number) {
     this.tasks = [];
     this._httpService.getCall(
@@ -156,10 +166,16 @@ export class DataService {
     });
   }
 
+  /**
+   * raise tasks subscribe
+   */
   getTasksSubscribe(): Observable<any> {
     return this.tasksSubject.asObservable();
   }
 
+  /**
+   * send tasks subscribe
+   */
   setTasksSubscribe() {
     this.tasksSubject.next({
       tasks: this.tasks,
@@ -170,10 +186,19 @@ export class DataService {
     });
   }
 
+  /**
+   * set project data
+   * @param project: project data
+   */
   setProject(project: Object) {
     this.currentProject = project;
   }
 
+  /**
+   * create activity
+   * @param activity: activity data
+   * @param nCount: count
+   */
   postActivity(activity: Object, nCount: number = 0) {
     activity['screenshot_urls'] = this.screenshotUrls;
     console.log('new activity: ', activity);
@@ -194,6 +219,10 @@ export class DataService {
     });
   }
 
+  /**
+   * set screenshot url
+   * @param url: url
+   */
   setScreenshotUrl(url: string) {
     this.screenshotUrls.push({
       url: url,
@@ -204,10 +233,18 @@ export class DataService {
     }
   }
 
+  /**
+   * clear local data
+   */
   clearData() {
     this.screenshotUrls = [];
   }
 
+  /**
+   * build screenshot
+   * @param preUrl: pre url of amazon
+   * @param url: url
+   */
   buildScreenshot(preUrl: string, url: string) {
     this.fullscreenScreenshot((blob) => {
       this._httpService.uploadFile(preUrl, blob, 'image/png').then((res) => {
@@ -218,6 +255,9 @@ export class DataService {
     });
   }
 
+  /**
+   * take screenshot of the desktop
+   */
   takecreenshot(): Promise<any> {
     return new Promise((resolve, reject) => {
       const fileName = Date.now() + '_screenshot.png';
@@ -238,6 +278,10 @@ export class DataService {
     });
   }
 
+  /**
+   * screenshot action
+   * @param callback: callback function
+   */
   fullscreenScreenshot(callback: Function) {
     const that = this;
     const _callback = callback;

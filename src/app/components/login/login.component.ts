@@ -47,6 +47,9 @@ export class LoginComponent implements OnInit {
   // convenience getter for easy access to form fields
   get f() { return this.loginForm.controls; }
 
+  /**
+   * submit login credential
+   */
   onSubmit() {
     this.submitted = true;
 
@@ -57,7 +60,7 @@ export class LoginComponent implements OnInit {
 
     this.loading = true;
     this._httpService.postCall(
-      'trackly/login', 
+      'trackly/login',
       {
         email: this.f.email.value,
         password: this.f.password.value

@@ -57,6 +57,9 @@ function createWindow() {
     }));
   }
 
+  /**
+   * Set tray icon
+   */
   const iconPath = path.join(__dirname, 'tray.png');
 
   tray = new Tray(iconPath);
@@ -115,6 +118,10 @@ function createWindow() {
 
 }
 
+/**
+ * format date from standard Date type
+ * @param date : Date type
+ */
 function formatDate(date) {
   let hours = date.getHours();
   let minutes = date.getMinutes();
@@ -130,11 +137,11 @@ function formatDate(date) {
 }
 
 /**
- *
- * @param projectId
- * @param taskId
- * @param timestamp
- * @param isImmediate
+ * update track
+ * @param projectId: project id
+ * @param taskId: task id
+ * @param timestamp: timestamp
+ * @param isImmediate: immediate process flag
  */
 function updateTracks(projectId, taskId, timestamp, isImmediate = false) {
   takeScreenShots(taskId, spanSeconds * 1000, isImmediate);
@@ -144,6 +151,12 @@ function updateTracks(projectId, taskId, timestamp, isImmediate = false) {
   createNewActivityEvent.sender.send('create-new-activity-reply', newActivity);
 }
 
+/**
+ * create new activity
+ * @param projectId: project id
+ * @param taskId: task id
+ * @param timestamp: timestamp
+ */
 function createNewActivity(projectId, taskId, timestamp) {
   let duration = Math.floor((timestamp - previousTimestamp) / 1000);
 
@@ -173,8 +186,8 @@ function createNewActivity(projectId, taskId, timestamp) {
 
 /**
  * take screenshots of desktop from UI
- * @param during
- * @param isImmediate
+ * @param during: interval between activities
+ * @param isImmediate: immediate proecss flag
  */
 function takeScreenShots(taskId, during, isImmediate = false) {
   if (isImmediate) {
@@ -193,7 +206,9 @@ function takeScreenShots(taskId, during, isImmediate = false) {
   }
 }
 
-// stop interval
+/**
+ * stop interval
+ */
 function stopInterval() {
   for (let index = 0; index < 3; index ++) {
     if (timerHandlers[index]) {
@@ -202,7 +217,9 @@ function stopInterval() {
   }
 }
 
-// clear data
+/**
+ * clear local data
+ */
 function clearData() {
   isTrack = false;
   mouseCount = 0;
@@ -215,6 +232,9 @@ function clearData() {
   stopInterval();
 }
 
+/**
+ * destroy ipcMain listeners and cron job handler
+ */
 function destroyListners() {
   if (ipcMain) {
     ipcMain.removeAllListeners('get-current-ids');
@@ -280,6 +300,9 @@ try {
     destroyListners();
   });
 
+  /**
+   * Cron Job for interval event
+   */
   cronjobHandler = new CronJob('0 */1 * * * *', function() {
     console.log('cronjob running:');
     if (isTrack) {
@@ -287,6 +310,9 @@ try {
     }
   }, null, true, 'America/Los_Angeles');
 
+  /**
+   * ipcMain lisner to get current task id and project id
+   */
   ipcMain.on('get-current-ids', (event, arg) => {
     event.sender.send('get-current-ids-reply', {
       currentTaskId: currentTaskId,
@@ -294,6 +320,9 @@ try {
     });
   });
 
+  /**
+   * ipcMain lisner to get selected task id and project id
+   */
   ipcMain.on('get-selected-ids', (event, arg) => {
     event.sender.send('get-selected-ids-reply', {
       selectedTaskId: selectedTaskId,
@@ -301,31 +330,43 @@ try {
     });
   });
 
+  /**
+   * ipcMain lisner to get current desktop window size
+   */
   ipcMain.on('get-window-size', (event, arg) => {
     event.sender.send('get-window-size-reply', size);
   });
 
+  /**
+   * ipcMain lisner to get screenshot event
+   */
   ipcMain.on('take-screenshot', (event, arg) => {
     takeScreenshotEvent = event;
   });
 
-  // selected a task
+  /**
+   * ipcMain lisner to get task id selected
+   */
   ipcMain.on('select-task', (event, arg) => {
-    selectedTaskId = parseInt(arg['taskId'], 10);
-    selectedProjectId = parseInt(arg['projectId'], 10);
-    event.sender.send('get-selected-ids-reply', {
-      selectedTaskId: selectedTaskId,
-      selectedProjectId: selectedProjectId
-    });
+    if (currentProjectId < 0 && currentTaskId < 0) {
+      selectedTaskId = parseInt(arg['taskId'], 10);
+      selectedProjectId = parseInt(arg['projectId'], 10);
+      event.sender.send('get-selected-ids-reply', {
+        selectedTaskId: selectedTaskId,
+        selectedProjectId: selectedProjectId
+      });
 
-    if (contextMenu) {
-      contextMenu.items[0].enabled = true;
-      contextMenu.items[1].enabled = false;
-      tray.setContextMenu(contextMenu);
+      if (contextMenu) {
+        contextMenu.items[0].enabled = true;
+        contextMenu.items[1].enabled = false;
+        tray.setContextMenu(contextMenu);
+      }
     }
   });
 
-  // start to track
+  /**
+   * ipcMain lisner to get start time tracking event
+   */
   ipcMain.on('start-track', (event, arg) => {
     if (currentTaskId >= 0 && currentProjectId >= 0) {
       if (currentTaskId !== arg['taskId'] || currentProjectId !== arg['projectId']) {
@@ -363,7 +404,9 @@ try {
     });
   });
 
-  // stop to track
+  /**
+   * ipcMain lisner to get stop time tracking event
+   */
   ipcMain.on('stop-track', (event, arg) => {
     isTrack = false;
     const newActivity = createNewActivity(arg['projectId'], arg['taskId'], Date.now());
@@ -376,21 +419,32 @@ try {
     }
   });
 
+  /**
+   * ipcMain lisner to get event of tray icon control
+   */
   ipcMain.on('tray-icon-control', (event, arg) => {
     trayControlEvent = event;
   });
 
-  // create new activity
+  /**
+   * ipcMain lisner to get event of new activity creation
+   */
   ipcMain.on('create-new-activity', (event, arg) => {
     createNewActivityEvent = event;
   });
 
+  /**
+   * ioHook listener to get key down event
+   */
   ioHook.on('keydown', event => {
     if (isTrack) {
       keyboardCount ++;
     }
   });
 
+  /**
+   * ioHook listener to get mouse down event
+   */
   ioHook.on('mousedown', event => {
     if (isTrack) {
       mouseCount ++;
@@ -400,7 +454,8 @@ try {
   // Register and start hook
   ioHook.start(false);
 
-} catch (e) {console.log('error: ', e);
+} catch (e) {
+  console.log('error: ', e);
   // Catch Error
   // throw e;
 }

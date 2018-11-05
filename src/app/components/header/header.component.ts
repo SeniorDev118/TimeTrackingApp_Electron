@@ -32,6 +32,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * init data
+   */
   initData() {
     if (localStorage.getItem('userToken')) {
       this.isLogin = true;
@@ -40,6 +43,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * logout
+   */
   logout() {
     localStorage.removeItem('userToken');
     this._dataService.stopTrack();

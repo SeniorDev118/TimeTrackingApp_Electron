@@ -36,11 +36,18 @@ export class TaskComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    /**
+     * route subscription listener
+     */
     this.activeRouteSub = this.activeRoute.params.subscribe(params => {
       this.projectId = parseInt(params['id'], 10);
       this._dataService.setTasks(this.projectId);
       this.projectName = this._dataService.currentProject ? this._dataService.currentProject['name'] : '';
     });
+
+    /**
+     * tasks subscription listener
+     */
     this.tasksRouteSub = this._dataService.getTasksSubscribe().subscribe(res => {
       this.tasks = res['tasks'];
       this.selectedTaskId = -1;
@@ -66,6 +73,11 @@ export class TaskComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * start screenshot
+   * @param taskId: task id
+   * @param event: event
+   */
   onStartScreenshot(taskId: number, event: any) {
     event.stopPropagation();
 
@@ -78,6 +90,11 @@ export class TaskComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * stop screenshot
+   * @param taskId: task id
+   * @param event: event
+   */
   onStopScreenshot(taskId: number, event: any) {
     event.stopPropagation();
 
@@ -90,6 +107,10 @@ export class TaskComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * select task
+   * @param taskId: task id
+   */
   onSelectTask(taskId: number) {
     this.selectedTaskId = taskId;
     this._electronService.ipcRenderer.send('select-task', {

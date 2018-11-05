@@ -10,6 +10,11 @@ export class HttpService {
     private router: Router
   ) { }
 
+  /**
+   * post http call
+   * @param url: url
+   * @param data: post data
+   */
   postCall(url: string, data: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
       axios.default.post(
@@ -22,13 +27,17 @@ export class HttpService {
           reject();
         }
       }).catch((err) => {
-        console.log(err)
+        console.log(err);
         this.handleUnAuthetication();
         reject(err);
       });
     });
   }
 
+  /**
+   * get http call
+   * @param url: url
+   */
   getCall(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
       axios.default.get(
@@ -46,6 +55,12 @@ export class HttpService {
     });
   }
 
+  /**
+   * upload file
+   * @param url: url
+   * @param blob: blob file data
+   * @param mime: mime type of the file
+   */
   uploadFile(url: string, blob: any, mime: string): Promise<any> {
     return new Promise((resolve, reject) => {
       axios.default.put(

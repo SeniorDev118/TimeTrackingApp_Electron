@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { ElectronService } from 'ngx-electron';
 import { HttpService } from '../_services/http.service';
 import { DataService } from '../_services/data.service';
 import { Router } from '@angular/router';
@@ -25,7 +24,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit() {
     this._httpService.getCall('trackly/gets/projects').then((res) => {
-      console.log('project list: ', res.data)
+      console.log('project list: ', res.data);
       this.projects = res.data;
       this.isLoad = true;
     }).catch((err) => {
@@ -33,6 +32,10 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /**
+   * go to specific project page
+   * @param project: project data
+   */
   goToTaskPage(project: Object) {
     if (project && project['id']) {
       this._dataService.setProject(project);

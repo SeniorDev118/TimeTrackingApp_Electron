@@ -24,7 +24,6 @@ export class AppComponent {
       console.log('Mode electron');
       console.log('Electron ipcRenderer', electronService.ipcRenderer);
       console.log('NodeJS childProcess', electronService.childProcess);
-
     } else {
       console.log('Mode web');
     }

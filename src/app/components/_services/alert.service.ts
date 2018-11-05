@@ -22,16 +22,29 @@ export class AlertService {
     });
   }
 
+  /**
+   * success alert
+   * @param message: message
+   * @param keepAfterNavigationChange: flag
+   */
   success(message: string, keepAfterNavigationChange = false) {
     this.keepAfterNavigationChange = keepAfterNavigationChange;
     this.subject.next({ type: 'success', text: message });
   }
 
+  /**
+   * error alert
+   * @param message: message
+   * @param keepAfterNavigationChange: flag
+   */
   error(message: string, keepAfterNavigationChange = false) {
     this.keepAfterNavigationChange = keepAfterNavigationChange;
     this.subject.next({ type: 'error', text: message });
   }
 
+  /**
+   * get message subscribe
+   */
   getMessage(): Observable<any> {
     return this.subject.asObservable();
   }
