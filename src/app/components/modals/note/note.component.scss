@@ -1,0 +1,13 @@
+:host {
+  .note-action-container {
+    width: 100%;
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+  }
+
+  textarea {
+    outline: none;
+    resize: none;
+  }
+}

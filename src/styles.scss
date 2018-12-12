@@ -1,5 +1,6 @@
 @import '~bootstrap/scss/bootstrap-reboot';
 @import '~bootstrap/scss/bootstrap-grid';
+@import "~@angular/material/prebuilt-themes/indigo-pink.css";
 
 html, body {
     height: 100%;
@@ -15,4 +16,88 @@ a {
 
 .loading-container {
     height: calc(100% - 56px);
+}
+
+.full-width {
+    width: 100%;
+}
+
+button:focus {
+    outline: none !important;
+}
+
+.none-underline {
+    text-decoration: none !important;
+}
+
+label.mat-radio-label {
+    margin: 0;
+}
+
+.mat-menu-item {
+    &.engagement-container {
+        height: auto;
+    
+        .engagement-wrapper {
+            div {
+                line-height: initial;
+            }
+
+            .percentage-wrapper {
+                display: flex;
+                flex-flow: row;
+                align-items: center;
+
+                .average {
+                    flex: 1 0 auto;
+                    text-align: center;
+                }
+
+                .tick {
+                    flex: 0 0 3em;
+
+                    .mat-icon {
+                        margin: 0;
+                    }
+                }
+            }
+        }
+    }
+
+    .timer-wrapper {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: space-between;
+
+        .status {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+
+            &.stop {
+                background-color: gold;
+            }
+
+            &.active {
+                background-color: green;
+            }
+        }
+
+        .title {
+            margin: 0 10px 0 2px;
+        }
+
+        .timer-icon {
+            .mat-icon {
+                margin: 0;
+            }
+        }
+    }
+}
+
+.setting-modal-container {
+    .mat-form-field-infix {
+        width: auto;
+    }
 }

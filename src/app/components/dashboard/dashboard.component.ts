@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { HttpService } from '../_services/http.service';
 import { DataService } from '../_services/data.service';
 import { Router } from '@angular/router';
 
@@ -14,7 +13,6 @@ export class DashboardComponent implements OnInit {
   projects: Object[];
 
   constructor(
-    private _httpService: HttpService,
     private _dataService: DataService,
     private _router: Router
   ) {
@@ -23,15 +21,17 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit() {
+    this._dataService.setProject({});
     /**
      * get project list
      */
-    this._httpService.getCall('trackly/gets/projects').then((res) => {
-      console.log('project list: ', res.data);
-      this.projects = res.data;
+    this._dataService.getAllProjectsTaks().then((res) => {
+      console.log('project task list: ', res);
+      this.projects = res[0];
       this.isLoad = true;
-    }).catch((err) => {
-      console.log('Error to get project list', err);
+    }).catch(() => {
+      this.projects = [];
+      this.isLoad = true;
     });
   }
 

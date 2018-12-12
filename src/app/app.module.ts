@@ -6,7 +6,6 @@ import { NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { HttpClientModule, HttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { NgxElectronModule } from 'ngx-electron';
 
 // NG Translate
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
@@ -23,13 +22,33 @@ import { LoginComponent } from './components/login/login.component';
 import { AngularFontAwesomeModule } from 'angular-font-awesome';
 import { AlertComponent } from './components/_directives/alert/alert.component';
 import { AlertService } from './components/_services/alert.service';
-import { HeaderComponent } from './components/header/header.component';
 import { routing } from './app.routing';
 import { AuthGuard } from './components/_guards/auth.guard';
 import { TimeConvertPipe } from './components/_pipes/time-convert.pipe';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { HttpService } from './components/_services/http.service';
 import { DataService } from './components/_services/data.service';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSelectModule } from '@angular/material/select';
+import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
+
+import { ObjectKeyPipe } from './components/_pipes/object-key.pipe';
+import { AboutComponent } from './components/about/about.component';
+import { HelpComponent } from './components/help/help.component';
+import { CheckComponent } from './components/check/check.component';
+import { NoteComponent } from './components/modals/note/note.component';
+import { SettingModalComponent } from './components/modals/setting-modal/setting-modal.component';
+import { HeaderComponent } from './components/header/header.component';
+
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -43,9 +62,15 @@ export function HttpLoaderFactory(http: HttpClient) {
     WebviewDirective,
     LoginComponent,
     AlertComponent,
-    HeaderComponent,
     TimeConvertPipe,
-    DashboardComponent
+    DashboardComponent,
+    ObjectKeyPipe,
+    AboutComponent,
+    HelpComponent,
+    CheckComponent,
+    NoteComponent,
+    SettingModalComponent,
+    HeaderComponent
   ],
   imports: [
     BrowserModule,
@@ -61,7 +86,18 @@ export function HttpLoaderFactory(http: HttpClient) {
     }),
     routing,
     FormsModule,
-    NgxElectronModule
+    BrowserAnimationsModule,
+    MatMenuModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatToolbarModule,
+    MatDialogModule,
+    MatIconModule,
+    MatRadioModule,
+    MatCheckboxModule,
+    MatSelectModule,
+    NgxMaterialTimepickerModule.forRoot()
   ],
   providers: [
     ElectronService,
@@ -69,6 +105,10 @@ export function HttpLoaderFactory(http: HttpClient) {
     AuthGuard,
     HttpService,
     DataService
+  ],
+  entryComponents: [
+    NoteComponent,
+    SettingModalComponent
   ],
   bootstrap: [AppComponent]
 })

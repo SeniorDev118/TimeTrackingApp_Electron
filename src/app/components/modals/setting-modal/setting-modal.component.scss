@@ -1,0 +1,19 @@
+:host {
+  .loading-container {
+    height: 100%;
+  }
+
+  .mat-dialog-title {
+    position: relative;
+
+    .mat-icon {
+      position: absolute;
+      right: -12px;
+      top: -12px;
+    }
+  }
+
+  .flex1 {
+    flex: 1;
+  }
+}

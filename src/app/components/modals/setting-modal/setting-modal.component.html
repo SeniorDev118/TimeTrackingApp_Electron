@@ -1,0 +1,126 @@
+<div class="setting-modal-container">
+  <h1 mat-dialog-title class="primary-color" class="text-center">
+    Settings
+    <mat-icon class="pointer" (click)="cancel()">close</mat-icon>
+  </h1>
+
+  <mat-dialog-content>
+    <div class="setting-container d-flex flex-column justify-content-around" *ngIf="isLoad; else loadEle">
+      <!-- Timer handler start -->
+      <div class="timer-handler d-flex align-items-center mb-3">
+        <mat-radio-group [(ngModel)]="isShowTimer" class="d-flex flex-row justify-content-between">
+          <mat-radio-button color="primary" [value]="true">Show Timer</mat-radio-button>
+          <mat-radio-button color="primary" class="ml-3" [value]="false">Hide Timer</mat-radio-button>
+        </mat-radio-group>
+      </div>
+      <!-- Timer handler end -->
+    
+      <!-- Notify handler start for screenshot -->
+      <div class="screenshot-notify-handler d-flex flex-row align-items-center mb-3">
+        <div class="label">
+          Notify me before taking a screenshot
+        </div>
+        <mat-radio-group [(ngModel)]="isNotifyScreenshot" class="d-flex flex-row justify-content-around ml-3">
+          <mat-radio-button color="primary" [value]="false">No</mat-radio-button>
+          <mat-radio-button color="primary" class="ml-3" [value]="true">Yes</mat-radio-button>
+        </mat-radio-group>
+      </div>
+      <!-- Notify handler end -->
+    
+      <!-- Notify handler start for schedule -->
+      <div class="schedule-notify-handler d-flex flex-row">
+        <!-- Schedule checkbox start -->
+        <mat-checkbox color="primary" [(ngModel)]="isNotifyTrack" class="mr-3 mt-3"></mat-checkbox>
+        <!-- Schedule checkbox end -->
+    
+        <div class="wrapper flex-fill d-flex flex-column justify-content-around">
+          <!-- Date schedule handler start -->
+          <div class="day-schedule-handler d-flex flex-row align-items-center mb-1">
+            <div class="flex1">Notify me to track time on</div>
+            <div class="ml-3 flex1">
+              <mat-form-field>
+                <mat-select placeholder="Weekdays" multiple [(ngModel)]="tracks">
+                  <mat-option *ngFor="let item of timeSchedules" [value]="item" class="text-capitalize">
+                    {{ item }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
+          <!-- Date schedule handler end -->
+      
+          <!-- Time schedule handler start -->
+          <div class="time-schedule-handler d-flex flex-row align-items-center mb-1">
+            <div>Between</div>
+            <div class="ml-3">
+              <mat-form-field>
+                <input
+                  class="text-uppercase"
+                  matInput
+                  [ngxTimepicker]="fromPicker"
+                  [(ngModel)]="startTime"
+                  [format]="12"
+                >
+                <ngx-material-timepicker #fromPicker></ngx-material-timepicker>
+              </mat-form-field>
+            </div>
+            <div class="ml-3">To</div>
+            <div class="ml-3">
+              <mat-form-field>
+                <input
+                  class="text-uppercase"
+                  matInput
+                  [ngxTimepicker]="toPicker"
+                  [(ngModel)]="endTime"
+                  [format]="12"
+                >
+                <ngx-material-timepicker #toPicker></ngx-material-timepicker>
+              </mat-form-field>
+            </div>
+          </div>
+          <!-- Time schedule handler end -->
+      
+          <!-- Track Interval handler start -->
+          <div class="interval-handler d-flex flex-row align-items-center justify-content-between mb-1">
+            <div>
+              If not tracked for
+            </div>
+    
+            <div class="flex-grow-1 mx-3">
+              <mat-form-field>
+                <input matInput [(ngModel)]="trackInterval">
+              </mat-form-field>
+            </div>
+
+            <div>Minutes</div>
+          </div>
+          <!-- Track Interval handler end -->
+        </div>
+      </div>
+      <!-- Notify handler end for schedule -->
+    </div>
+    
+    <!-- load start -->
+    <ng-template #loadEle>
+      <div class="d-flex justify-content-center align-items-center loading-container m-3">
+        <i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
+      </div>
+    </ng-template>
+    <!-- load end -->
+  </mat-dialog-content>
+
+  <mat-dialog-actions *ngIf="isLoad">
+    <!-- Error alert start -->
+    <div class="alert alert-danger full-width" *ngIf="errorAlert">
+      {{ errorAlert }}
+    </div>
+    <!-- Error alert end -->
+
+    <!-- Action start -->
+    <div class="d-flex flex-row justify-content-center full-width">
+      <button mat-button (click)="cancel()">No Thanks</button>
+      <button mat-button (click)="save()">Save</button>
+    </div>
+    <!-- Action end -->
+  </mat-dialog-actions>
+</div>

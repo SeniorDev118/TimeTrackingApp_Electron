@@ -1,45 +1,69 @@
 import { Injectable } from '@angular/core';
-import { ElectronService } from 'ngx-electron';
 import { HttpService } from './http.service';
 import { Subject, Observable } from 'rxjs';
+import { ElectronService } from '../../providers/electron.service';
+import { MatDialog } from '@angular/material';
+import { NoteComponent } from '../modals/note/note.component';
+import { SettingModalComponent } from '../modals/setting-modal/setting-modal.component';
+import { Router } from '@angular/router';
+import { AlertService } from './alert.service';
 
 @Injectable()
 export class DataService {
   isTakingScreenShot: boolean; // taking screenshot flag
+  isTracking: boolean;
   windowWidth: number; // window width
   windowHeight: number; // window height
+  activityId: number; // activity id
   tasks: Object[]; // tasks
   screenshotUrls: Object[]; // screenshot urls for one activity
+  projectSettings: Object[]; // project settings
   currentProject: Object; // current project detail
+  currentSetting: Object; // setting data
   currentProjectId: number; // current project id
   currentTaskId: number; // current task id
   selectedTaskId: number; // selected task id
   selectedProjectId: number; // selected project id
+  lastEngagementHour: number; // last engagement hour
 
   private tasksSubject: Subject<any>; // tasks subscription
 
   constructor(
     private _electronService: ElectronService,
-    private _httpService: HttpService
+    private _httpService: HttpService,
+    private dialog: MatDialog,
+    private _router: Router,
+    private _alertService: AlertService
   ) {
     this.screenshotUrls = [];
     this.tasks = [];
+    this.projectSettings = [];
     this.windowWidth = 0;
     this.windowHeight = 0;
     this.currentProjectId = -1;
     this.currentTaskId = -1;
     this.selectedTaskId = -1;
     this.selectedProjectId = -1;
+    this.activityId = -1;
     this.currentProject = {};
+    this.currentSetting = {};
     this.tasksSubject = new Subject();
     this.isTakingScreenShot = false;
+    this.isTracking = false;
+    this.lastEngagementHour = 0;
+
+    this.getSetting().catch(() => console.log());
   }
 
   /**
    * set listeners
    */
   setAcitivityListener() {
-    if (this._electronService.isElectronApp) {
+    if (this._electronService.isElectron) {
+      this._electronService.ipcRenderer.send('get-all-projects-tasks', {
+        projects: [],
+        tasks: []
+      });
       /**
        * tray icon control
        */
@@ -115,6 +139,7 @@ export class DataService {
         this.currentTaskId = arg['currentTaskId'];
         this.selectedProjectId = arg['selectedProjectId'];
         this.selectedTaskId = arg['selectedTaskId'];
+        this.isTracking = true;
 
         if (this.tasks.length > 0) {
           for (let index = 0; index < this.tasks.length; index ++) {
@@ -131,21 +156,90 @@ export class DataService {
        */
       this._electronService.ipcRenderer.on('stop-track-reply', (event, arg) => {
         console.log('stop-track-reply:', arg);
-        this.currentProjectId = -1;
-        this.currentTaskId = -1;
-        this.selectedProjectId = -1;
-        this.selectedTaskId = -1;
+
         if (this.tasks.length > 0) {
           for (let index = 0; index < this.tasks.length; index ++) {
-            if (this.tasks[index]['id'] === arg['task_id']) {
+            if (this.tasks[index]['id'] === this.currentTaskId) {
               this.tasks[index]['timerStatus'] = 'InActive';
             }
           }
-          this.setTasksSubscribe();
+        }
 
-          this.takecreenshot().then(() => {
-            this.postActivity(arg);
-          });
+        this.currentProjectId = arg['currentProjectId'];
+        this.currentTaskId = arg['currentTaskId'];
+        this.selectedProjectId = arg['selectedProjectId'];
+        this.selectedTaskId = arg['selectedTaskId'];
+        this.isTracking = false;
+
+        this.setTasksSubscribe();
+      });
+
+      /**
+       * control event
+       */
+      this._electronService.ipcRenderer.send('control-event');
+      this._electronService.ipcRenderer.on('control-event-reply', (event, arg) => {
+        console.log('control-event-reply: ', arg);
+        let config;
+        switch (arg['type']) {
+          case 'note':
+            config = {
+              width: '400px',
+              disableClose: true
+            };
+            const noteDialogRef = this.dialog.open(NoteComponent, config);
+            noteDialogRef.afterClosed().subscribe(result => {
+              if (result['status']) {
+                this.addNote(result['note']).then(() => {
+                }).catch((error) => {
+                  if (error) {
+                    this._alertService.error('Please try again later.');
+                  } else {
+                    this._alertService.error('Empty activity.');
+                  }
+                });
+              }
+            });
+            break;
+
+          case 'setting':
+            config = {
+              width: '400px',
+              disableClose: true,
+              data: {
+                getDataPromise: this.getSetting()
+              }
+            };
+            const settingDialogRef = this.dialog.open(SettingModalComponent, config);
+            settingDialogRef.afterClosed().subscribe(result => {
+              if (result['status']) {
+                this.updateSetting(result['data']).then(() => {
+                }).catch(() => {
+                  this._alertService.error('Please try again later.');
+                });
+              }
+            });
+            break;
+
+          case 'about':
+            this._router.navigate(['/about']);
+            break;
+          case 'help':
+          this._router.navigate(['/help']);
+            break;
+          case 'check':
+          this._router.navigate(['/check']);
+            break;
+          case 'signout':
+            if (this.isTracking) {
+              this.stopTrack();
+            }
+            localStorage.removeItem('userInformation');
+            this._router.navigate(['/login']);
+            break;
+
+          default:
+            break;
         }
       });
     }
@@ -155,7 +249,9 @@ export class DataService {
    * stop track
    */
   stopTrack() {
-    if (this._electronService.isElectronApp) {
+    if (this._electronService.isElectron) {
+      this.isTracking = false;
+
       this._electronService.ipcRenderer.send('stop-track', {
         taskId: this.currentTaskId,
         projectId: this.currentProjectId
@@ -170,7 +266,7 @@ export class DataService {
   setTasks(projectId: number) {
     this.tasks = [];
     this._httpService.getCall(
-      `/trackly/gets/tasks?target_table=projects&table_join_column=project_id&target_table_join_column=id&where=project_id=${projectId}`
+      `/trackly/gets/tasks?table_join_column=project_id&target_table1_join_column=id&where=tasks.project_id=${projectId}`
     ).then((res) => {
       console.log(res);
       if (res.data && res.data.length > 0) {
@@ -189,6 +285,104 @@ export class DataService {
       this.setTasksSubscribe();
     });
   }
+
+  /**
+   * get all project settings
+   */
+  getAllProjectSettings(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this._httpService.getCall('trackly/project-settings').then((res) => {
+        if (res && res['data']) {
+          return resolve(res['data']);
+        } else {
+          return resolve([]);
+        }
+      }).catch((error) => {
+        console.log('Error to get project list', error);
+        return reject(error);
+      });
+    });
+  }
+
+  /**
+   * get all tasks for specific user
+   */
+  getAllTasks(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (localStorage.getItem('userInformation')) {
+        const userInfo = JSON.parse(localStorage.getItem('userInformation'));
+        if (userInfo && userInfo['id']) {
+          this._httpService.getCall(
+            `/trackly/gets/tasks`
+          ).then((res) => {
+            if (res && res['data']) {
+              resolve(res['data']);
+            } else {
+              resolve([]);
+            }
+          }).catch((error) => {
+            reject(error);
+          });
+        } else {
+          reject();
+        }
+      } else {
+        reject();
+      }
+    });
+  }
+
+  /**
+   * get all projects and tasks
+   */
+  getAllProjectsTaks(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      Promise.all([
+        this.getAllProjectSettings(),
+        this.getAllTasks()
+      ]).then((res) => {
+        this.projectSettings = res[0];
+        this._electronService.ipcRenderer.send('get-all-projects-tasks', {
+          projects: res[0],
+          tasks: res[1]
+        });
+        return resolve(res);
+      }).catch(() => {
+        this.projectSettings = [];
+        this._electronService.ipcRenderer.send('get-all-projects-tasks', {
+          projects: [],
+          tasks: []
+        });
+        return reject();
+      });
+    });
+  }
+
+  /**
+   * get projects for specific user
+   */
+  // getAllProjects(): Promise<any> {
+  //   return new Promise((resolve, reject) => {
+  //     this._httpService.getCall('trackly/gets/projects').then((res) => {
+  //       let projects;
+  //       if (res && res['data']) {
+  //         projects = res['data'];
+  //       } else {
+  //         projects = [];
+  //       }
+  //       this.projectsSubject.next({
+  //         projects: projects
+  //       });
+  //       return resolve(projects);
+  //     }).catch((error) => {
+  //       console.log('Error to get project list', error);
+  //       this.projectsSubject.next({
+  //         projects: []
+  //       });
+  //       reject(error);
+  //     });
+  //   });
+  // }
 
   /**
    * raise tasks subscribe
@@ -216,6 +410,9 @@ export class DataService {
    */
   setProject(project: Object) {
     this.currentProject = project;
+    this._electronService.ipcRenderer.send('select-project', {
+      project: this.currentProject
+    });
   }
 
   /**
@@ -229,16 +426,26 @@ export class DataService {
     this._httpService.postCall(
       'trackly/create/activity',
       activity
-    ).then(() => {
+    ).then((res) => {
       console.log('Activity creation is successful!');
+      if (res && res['data'] && res['data']['GENERATED_KEY']) {
+        this.activityId = res['data']['GENERATED_KEY'];
+      } else {
+        this.activityId = -1;
+      }
+      this._electronService.ipcRenderer.send('activity-notification', {
+        activityId: this.activityId
+      });
       this.clearData();
     }).catch((err) => {
       console.log('Activity creation error', err);
-      if (nCount < 20) {
+      if (err) {
+        if (nCount < 20) {
           nCount ++;
           setTimeout(() => {
             this.postActivity(activity, nCount);
-          }, 5 * 60 * 1000);
+          }, 5 * 60 * 1000); // retry in 5 mins
+        }
       }
     });
   }
@@ -252,6 +459,7 @@ export class DataService {
       url: url,
       timestamp: Date.now()
     });
+    console.log('screenshot list: ', this.screenshotUrls);
     if (this.screenshotUrls.length > 3) {
       this.screenshotUrls.splice(0, 3);
     }
@@ -381,6 +589,76 @@ export class DataService {
           return;
         }
       }
+    });
+  }
+
+  /**
+   * add a note
+   * @param note: note
+   */
+  addNote(note: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (this.activityId >= 0) {
+        this._httpService.postCall(
+          'trackly/note/activity_note',
+          {
+            activity_id: this.activityId,
+            note: note
+          }
+        ).then(() => {
+          console.log('Adding a note is successful!');
+          resolve();
+        }).catch((err) => {
+          console.log('Add a note error', err);
+          reject(err);
+        });
+      } else {
+        reject();
+      }
+    });
+  }
+
+  /**
+   * get setting data
+   */
+  getSetting(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this._httpService.getCall('trackly/gets/settings/widget_settings').then((res) => {
+        console.log('setting data:', res);
+        if (res && res['data']) {
+          this.currentSetting = res['data'];
+          resolve(res['data']);
+        } else {
+          this.currentSetting = {};
+          reject();
+        }
+        this._electronService.ipcRenderer.send('update-setting', {
+          setting: this.currentSetting
+        });
+      }).catch((error) => {
+        console.log('Error to get project list', error);
+        this.currentSetting = {};
+        this._electronService.ipcRenderer.send('update-setting', {
+          setting: this.currentSetting
+        });
+        reject(error);
+      });
+    });
+  }
+
+  /**
+   * update the setting
+   * @param setting: setting data
+   */
+  updateSetting(setting: Object): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this._httpService.postCall('/trackly/settings/widget_settings', setting).then((res) => {
+        console.log('Updating setting is successful!', res);
+        this.getSetting().catch(() => console.log());
+        resolve();
+      }).catch((error) => {
+        reject(error);
+      });
     });
   }
 }

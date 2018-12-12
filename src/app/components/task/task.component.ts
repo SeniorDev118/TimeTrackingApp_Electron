@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ElectronService } from 'ngx-electron';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { DataService } from '../_services/data.service';
+import { ElectronService } from '../../providers/electron.service';
 
 @Component({
   selector: 'app-task',
@@ -85,7 +85,7 @@ export class TaskComponent implements OnInit, OnDestroy {
     event.stopPropagation();
 
     this.selectedTaskId = taskId;
-    if (this._electronService.isElectronApp) {
+    if (this._electronService.isElectron) {
       this._electronService.ipcRenderer.send('start-track', {
         taskId: taskId,
         projectId: this.projectId
@@ -102,7 +102,7 @@ export class TaskComponent implements OnInit, OnDestroy {
     event.stopPropagation();
 
     this.selectedTaskId = -1;
-    if (this._electronService.isElectronApp) {
+    if (this._electronService.isElectron) {
       this._electronService.ipcRenderer.send('stop-track', {
         taskId: taskId,
         projectId: this.projectId

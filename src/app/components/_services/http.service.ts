@@ -27,9 +27,7 @@ export class HttpService {
           reject();
         }
       }).catch((err) => {
-        console.log(err);
-        this.handleUnAuthetication();
-        reject(err);
+        reject(this.errorHandler(err));
       });
     });
   }
@@ -49,8 +47,7 @@ export class HttpService {
           reject();
         }
       }).catch((err) => {
-        this.handleUnAuthetication();
-        reject(err);
+        reject(this.errorHandler(err));
       });
     });
   }
@@ -79,14 +76,33 @@ export class HttpService {
             reject();
           }
         }).catch((err) => {
-          this.handleUnAuthetication();
-          reject(err);
+          reject(this.errorHandler(err));
         });
     });
   }
 
+  /**
+   * error handler
+   * @param error: error
+   */
+  errorHandler(error: any) {
+    console.log(error);
+    let rejectResponse = false;
+    if (!error.response || error.response && error.response.status === 401) {
+      this.handleUnAuthetication();
+      rejectResponse = false;
+    } else {
+      rejectResponse = true;
+    }
+    return rejectResponse;
+  }
+
+  /**
+   * handle un-authentication
+   * @param statusCode: status code
+   */
   handleUnAuthetication() {
-    // localStorage.removeItem('userToken');
-    // this.router.navigate(['/login']);
+    localStorage.removeItem('userInformation');
+    this.router.navigate(['/login']);
   }
 }

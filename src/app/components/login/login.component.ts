@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AlertService } from '../_services/alert.service';
-import { ElectronService } from 'ngx-electron';
 import { HttpService } from '../_services/http.service';
 
 @Component({
@@ -38,7 +37,7 @@ export class LoginComponent implements OnInit {
     });
 
     // reset login status
-    localStorage.removeItem('userToken');
+    localStorage.removeItem('userInformation');
 
     // get return url from route parameters or default to '/'
     // this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
@@ -67,11 +66,16 @@ export class LoginComponent implements OnInit {
         password: this.f.password.value
     }).then((res) => {
       console.log(res);
-      localStorage.setItem('userToken', this.f.email.value);
-      this.router.navigate([this.returnUrl]);
+      if (res['data']) {
+        localStorage.setItem('userInformation', JSON.stringify(res['data']));
+        this.router.navigate([this.returnUrl]);
+      }
     }).catch((err) => {
-      console.log('Login Error: ', err);
-      this.alertService.error('Wrong email or password.');
+      if (err) {
+        this.alertService.error('Wrong email or password.');
+      } else {
+        this.alertService.error('Please try again later.');
+      }
       this.loading = false;
     });
   }
