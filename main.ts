@@ -1,11 +1,11 @@
-import { app, BrowserWindow, screen, ipcMain, Tray, Menu, shell } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, Tray, Menu, shell, nativeImage } from 'electron';
 import * as ioHook from 'iohook';
 import * as path from 'path';
 import * as url from 'url';
 import * as moment from 'moment';
 import { CronJob } from 'cron';
 import { notify } from 'node-notifier';
-let win, serve, size, isTrack, keyboardCount, mouseCount, timerHandlers, settingData;
+let win, serve, size, isTrack, keyboardCount, mouseCount, screenshotTimerHandlers, settingData;
 let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, tray, selectProjectEvent, controlEvent;
 let hourCronjobHandler, trackingIntervalHandler, engagementIntervalHandler, checkTrackOnHandler;
 let contextMenu, currentTaskId, currentProjectId, selectedTaskId, selectedProjectId, previousTimestamp;
@@ -32,7 +32,7 @@ settingData = {};
 projectsDetail = {};
 selectedProject = {};
 menuTemplate = [];
-timerHandlers = [];
+screenshotTimerHandlers = [];
 
 const args = process.argv.slice(1);
 serve = args.some(val => val === '--serve');
@@ -47,13 +47,14 @@ function createWindow() {
   win = new BrowserWindow({
     // x: 0,
     // y: 0,
-    width: 1280,
-    height: 720,
-    // width: 472,
-    // height: 667,
+    // width: 1280,
+    // height: 720,
+    width: 472,
+    height: 667,
     center: true,
-    // minWidth: 472,
-    // minHeight: 667,
+    icon: nativeImage.createFromPath(path.join(__dirname, '/icons/256x256.png')),
+    minWidth: 472,
+    minHeight: 667,
     maxWidth: 472,
     maxHeight: 667,
     maximizable: false,
@@ -120,13 +121,8 @@ function customNotify(title, message) {
  * @param projectId: project id
  * @param taskId: task id
  * @param timestamp: timestamp
- * @param isScreenshot: taking screenshot flag
  */
-function updateTracks(projectId, taskId, timestamp, isScreenshot = true) {
-  if (isScreenshot) {
-    takeScreenShots(taskId, trackingTimeIntervalMins * 60 * 1000, false);
-  }
-
+function updateTracks(projectId, taskId, timestamp) {
   const newActivity = createNewActivity(projectId, taskId, timestamp);
   createNewActivityEvent.sender.send('create-new-activity-reply', newActivity);
   console.log('---create activity---');
@@ -173,34 +169,12 @@ function createNewActivity(projectId, taskId, timestamp) {
 }
 
 /**
- * take screenshots of desktop from UI
- * @param during: interval between activities in mini-second
- * @param isImmediate: immediate proecss flag
- */
-function takeScreenShots(taskId, during, isImmediate = false) {
-  if (isImmediate) {
-    takeScreenshotEvent.sender.send('take-screenshot-reply', taskId);
-    return;
-  }
-
-  // take a screenshot in random
-  console.log('--- start random screenshot ---');
-  for (let index = 0; index < 3; index ++) {
-    const time = Math.random() * during;
-    console.log('random time: ', time);
-    timerHandlers[index] = setTimeout(() => {
-      takeScreenshotEvent.sender.send('take-screenshot-reply', taskId);
-    }, time);
-  }
-}
-
-/**
  * clear screenshots intervals
  */
 function clearScreenshotsIntervals() {
   for (let index = 0; index < 3; index ++) {
-    if (timerHandlers[index]) {
-      clearInterval(timerHandlers[index]);
+    if (screenshotTimerHandlers[index]) {
+      clearInterval(screenshotTimerHandlers[index]);
     }
   }
 }
@@ -290,47 +264,76 @@ function calculateEngagementPer() {
 }
 
 /**
- * create time intervals
+ * process time tracking
+ * @param trackingIntervalInMiniSecs tracking interval time
  */
-function createTimeIntervals() {
+function processTimeTrack(trackingIntervalInMiniSecs) {
+  for (let index = 0; index < 3; index ++) {
+    const randomInterval = Math.floor(Math.random() * trackingIntervalInMiniSecs);
+    console.log('random time: ', randomInterval);
+    // random interval start
+    screenshotTimerHandlers[index] = setTimeout(() => {
+      if (isTrack) {
+        takeScreenshotEvent.sender.send('take-screenshot-reply');
+      }
+    }, randomInterval);
+    // random interval end
+  }
+
+  if (isTrack) {
+    // increase timer
+    if (projectsDetail.hasOwnProperty(selectedProjectId)) {
+      const current = Date.now();
+      const diffInMilliSecs = current - lastProjectTimestamp;
+      projectsDetail[selectedProjectId]['time'] += diffInMilliSecs;
+      lastProjectTimestamp = current;
+      buildProjectInfo();
+    }
+
+    updateTracks(currentProjectId, currentTaskId, Date.now());
+  }
+}
+
+/**
+ * clear all kinds of time interval handlers
+ */
+function clearTimeIntervals() {
+  if (trackingIntervalHandler) {
+    clearInterval(trackingIntervalHandler);
+  }
+
+  if (engagementIntervalHandler) {
+    clearInterval(engagementIntervalHandler);
+  }
+
+  clearScreenshotsIntervals();
+}
+
+/**
+ * start time intervals
+ */
+function startTimeIntervals() {
   // tracking cron job
   if (trackingTimeIntervalMins <= 0) {
     console.log('Tracking interval is less than 0');
     return;
   }
 
-  if (trackingIntervalHandler) {
-    clearInterval(trackingIntervalHandler);
-  }
-
   const trackingIntervalInMiniSecs = parseInt(trackingTimeIntervalMins, 10) * 60 * 1000;
   console.log('trackingTimeIntervalMins: ', trackingTimeIntervalMins, trackingIntervalInMiniSecs);
+  processTimeTrack(trackingIntervalInMiniSecs);
 
+  // tracking interval start
   trackingIntervalHandler = setInterval(() => {
     console.log('tracking interval running:');
-
-    if (isTrack) {
-      // increase timer
-      if (projectsDetail.hasOwnProperty(selectedProjectId)) {
-        const current = Date.now();
-        const diffInMilliSecs = current - lastProjectTimestamp;
-        projectsDetail[selectedProjectId]['time'] += diffInMilliSecs;
-        lastProjectTimestamp = current;
-        updateTrayTitle();
-      }
-
-      updateTracks(currentProjectId, currentTaskId, Date.now());
-    }
+    processTimeTrack(trackingIntervalInMiniSecs);
   }, trackingIntervalInMiniSecs);
+  // tracking interval end
 
   // engagement cron job
   if (engagementTimeIntervalMins <= 0) {
     console.log('Tracking interval is less than 0');
     return;
-  }
-
-  if (engagementIntervalHandler) {
-    clearInterval(engagementIntervalHandler);
   }
 
   const egIntervalInMiniSecs = parseInt(engagementTimeIntervalMins, 10) * 60 * 1000;
@@ -357,9 +360,9 @@ function makeTrayTime(secs) {
 }
 
 /**
- * update tray title
+ * build project information like code and timer
  */
-function updateTrayTitle() {
+function buildProjectInfo() {
   if (projectsDetail && selectedProjectId && projectsDetail[selectedProjectId]) {
     const timeInMiniSecs = parseInt(projectsDetail[selectedProjectId]['time'], 10);
     const projectTimer = makeTrayTime(Math.floor(timeInMiniSecs / 1000));
@@ -395,7 +398,7 @@ function createTrayMenu() {
   /**
    * Set tray icon
    */
-  const iconPath = path.join(__dirname, 'tray.png');
+  const iconPath = path.join(__dirname, 'icons', '16x16.png');
 
   tray = new Tray(iconPath);
   menuTemplate = [
@@ -405,6 +408,9 @@ function createTrayMenu() {
     {
       label: '',
       visible: false
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Timer is running',
@@ -417,7 +423,7 @@ function createTrayMenu() {
           });
         }
       },
-      icon: path.join(__dirname, 'pause.png'),
+      icon: path.join(__dirname, 'icons', 'pause.png'),
       visible: false
     },
     {
@@ -431,18 +437,28 @@ function createTrayMenu() {
           });
         }
       },
-      icon: path.join(__dirname, 'play.png'),
+      icon: path.join(__dirname, 'icons', 'play.png'),
       enabled: false
     },
     {
-      label: 'Switch Projects'
+      type: 'separator'
+    },
+    {
+      label: 'Switch Projects',
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Add a note',
       click: () => {
         controlEvent.sender.send('control-event-reply', {type: 'note'});
+        win.focus();
       },
       enabled: false
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Open Dashboard',
@@ -451,35 +467,57 @@ function createTrayMenu() {
       }
     },
     {
+      type: 'separator'
+    },
+    {
       label: 'Settings',
       click: () => {
         controlEvent.sender.send('control-event-reply', {type: 'setting'});
+        win.focus();
       }
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'About Track.ly',
       click: () => {
-        controlEvent.sender.send('control-event-reply', {type: 'about'});
+        shell.openExternal('https://www.track.ly/');
       }
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Help',
       click: () => {
         controlEvent.sender.send('control-event-reply', {type: 'help'});
+        win.focus();
       }
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Check for updates',
       click: () => {
         controlEvent.sender.send('control-event-reply', {type: 'check'});
+        win.focus();
       }
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Sign out',
       click: () => {
         controlEvent.sender.send('control-event-reply', {type: 'signout'});
-        menuTemplate[3].enabled = false;
+        menuTemplate[4].enabled = false;
+        win.focus();
       }
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Quit tracker',
@@ -499,6 +537,59 @@ function createTrayMenu() {
 }
 
 /**
+ * select project
+ */
+function selectProject() {
+  if (selectedProjectId < 0) {
+    console.log('selected project id is wrong');
+    return;
+  }
+
+  console.log('selectedProject: ', selectedProjectId)
+  selectedProject = projectsDetail[selectedProjectId]['data'];
+  console.log('current selected project: ', selectedProject)
+  idleSettingTimeInMins = selectedProject['ideal_time_interval_mins'] ? parseInt(selectedProject['ideal_time_interval_mins'], 10) : 0;
+  trackingTimeIntervalMins = selectedProject['time_interval_mins'] ? parseInt(selectedProject['time_interval_mins'], 10) : 0;
+  engagementTimeIntervalMins = selectedProject['engagement_interval_mins'] ?
+    parseInt(selectedProject['engagement_interval_mins'], 10) : 0;
+  clearTimeIntervals();
+  startTimeIntervals();
+  lastProjectTimestamp = Date.now();
+
+  if (!isTrack) { // if timer is stopped
+    if (tray && menuTemplate.length > 0) {
+      // hide stop tray menu
+      menuTemplate[3].visible = false;
+      // Show start tray menu
+      menuTemplate[4].visible = true;
+      menuTemplate[4].enabled = true;
+      contextMenu = Menu.buildFromTemplate(menuTemplate);
+      tray.setContextMenu(contextMenu);
+    }
+  }
+
+  buildProjectInfo();
+}
+
+/**
+ * select project or task
+ * @param idInfo projectId-taskId
+ */
+function selectProjectTask(idInfo) {
+  const arr = idInfo.split('-');
+  if (arr.length === 1) { // project case
+    selectedProjectId = parseInt(arr[0], 10);
+    selectProject();
+    console.log('selectedProject: ', selectedProjectId)
+  } else if (arr.length === 2) { // task case
+    selectedProjectId = parseInt(arr[0], 10);
+    selectedTaskId = parseInt(arr[1], 10);
+    selectProject();
+    console.log('selectedTask: ', selectedProjectId, selectedTaskId)
+  }
+}
+
+/**
  * build project tray menu
  * @param projects: projects
  * @param tasks: tasks
@@ -512,15 +603,27 @@ function buildProjectMenu(projects, tasks) {
         if (parseInt(tasks[index]['project_id'], 10) === parseInt(project['id'], 10)) {
           projectTasks.push({
             id: project['id'] + '-' + tasks[index]['id'],
-            label: tasks[index]['description']
+            label: tasks[index]['description'],
+            click: (menuItem: Object) => {
+              selectProjectTask(menuItem['id']);
+            }
           });
         }
       }
-      return {
+
+      const returnItem = {
         id: project['id'],
         label: project['name'],
-        submenu: projectTasks
+        click: (menuItem: Object) => {
+          selectProjectTask(menuItem['id']);
+        }
       };
+
+      if (projectTasks.length > 0) {
+        returnItem['submenu'] = projectTasks;
+      }
+
+      return returnItem;
     });
   }
   return projectSubMenu;
@@ -708,9 +811,9 @@ try {
       });
 
       if (tray && menuTemplate.length > 0) {
-        menuTemplate[2].visible = false;
-        menuTemplate[3].visible = true;
-        menuTemplate[3].enabled = true;
+        menuTemplate[3].visible = false;
+        menuTemplate[4].visible = true;
+        menuTemplate[4].enabled = true;
         contextMenu = Menu.buildFromTemplate(menuTemplate);
         tray.setContextMenu(contextMenu);
       }
@@ -736,13 +839,13 @@ try {
       if (currentTaskId !== arg['taskId'] || currentProjectId !== arg['projectId']) {
         isTrack = false;
         if (tray && menuTemplate.length > 0) {
-          menuTemplate[2].visible = false;
-          menuTemplate[3].visible = true;
-          menuTemplate[3].enabled = true;
+          menuTemplate[3].visible = false;
+          menuTemplate[4].visible = true;
+          menuTemplate[4].enabled = true;
           contextMenu = Menu.buildFromTemplate(menuTemplate);
           tray.setContextMenu(contextMenu);
         }
-        updateTracks(currentProjectId, currentTaskId, Date.now(), false);
+        updateTracks(currentProjectId, currentTaskId, Date.now());
         clearTrackData();
       }
     }
@@ -751,8 +854,8 @@ try {
     lastTrackTimestamp = Date.now();
 
     if (tray && menuTemplate.length) {
-      menuTemplate[2].visible = true;
-      menuTemplate[3].visible = false;
+      menuTemplate[3].visible = true;
+      menuTemplate[4].visible = false;
       contextMenu = Menu.buildFromTemplate(menuTemplate);
       tray.setContextMenu(contextMenu);
     }
@@ -776,12 +879,12 @@ try {
    */
   ipcMain.on('stop-track', (event, arg) => {
     if (isTrack) {
-      updateTracks(arg['projectId'], arg['taskId'], Date.now(), false);
+      updateTracks(arg['projectId'], arg['taskId'], Date.now());
       clearTrackData();
 
       if (tray && menuTemplate.length > 0) {
-        menuTemplate[2].visible = false;
-        menuTemplate[3].visible = true;
+        menuTemplate[3].visible = false;
+        menuTemplate[4].visible = true;
         contextMenu = Menu.buildFromTemplate(menuTemplate);
         tray.setContextMenu(contextMenu);
       }
@@ -817,16 +920,17 @@ try {
       trackingTimeIntervalMins = selectedProject['time_interval_mins'] ? parseInt(selectedProject['time_interval_mins'], 10) : 0;
       engagementTimeIntervalMins = selectedProject['engagement_interval_mins'] ?
         parseInt(selectedProject['engagement_interval_mins'], 10) : 0;
-      createTimeIntervals();
+      clearTimeIntervals();
+      startTimeIntervals();
       lastProjectTimestamp = current;
       if (tray && menuTemplate.length > 0) {
-        menuTemplate[2].visible = false;
-        menuTemplate[3].visible = true;
-        menuTemplate[3].enabled = true;
+        menuTemplate[3].visible = false;
+        menuTemplate[4].visible = true;
+        menuTemplate[4].enabled = true;
         contextMenu = Menu.buildFromTemplate(menuTemplate);
         tray.setContextMenu(contextMenu);
       }
-      updateTrayTitle();
+      buildProjectInfo();
     } else { // if any project is not selected
       if (
         isTrack &&
@@ -843,9 +947,9 @@ try {
       if (tray) {
         if (tray && menuTemplate.length > 0 && !isTrack) {
           menuTemplate[1].visible = false;
-          menuTemplate[2].visible = false;
-          menuTemplate[3].visible = true;
-          menuTemplate[3].enabled = false;
+          menuTemplate[3].visible = false;
+          menuTemplate[4].visible = true;
+          menuTemplate[4].enabled = false;
           contextMenu = Menu.buildFromTemplate(menuTemplate);
           tray.setContextMenu(contextMenu);
         }
@@ -857,6 +961,8 @@ try {
    * ipcMain lisner to get all projects and tasks
    */
   ipcMain.on('get-all-projects-tasks', (event, arg) => {
+    let projectSubMenu = [];
+
     if (arg['projects'] && arg['projects'].length > 0) {
       for (let index = 0; index < arg['projects'].length; index ++) {
         if (arg['projects'][index] && arg['projects'][index]['id']) {
@@ -865,15 +971,21 @@ try {
               time: 0
             };
           }
+
+          projectsDetail[arg['projects'][index]['id']]['data'] = arg['projects'][index];
         }
       }
 
-      const projectSubMenu = buildProjectMenu(arg['projects'], arg['tasks']);
-      if (tray && menuTemplate.length > 3) {
-        menuTemplate[4].submenu = projectSubMenu;
-        contextMenu = Menu.buildFromTemplate(menuTemplate);
-        tray.setContextMenu(contextMenu);
+      projectSubMenu = buildProjectMenu(arg['projects'], arg['tasks']);
+    }
+
+    if (tray && menuTemplate.length > 3) {
+      if (projectSubMenu.length > 0) {
+        menuTemplate[6].submenu = projectSubMenu;
       }
+
+      contextMenu = Menu.buildFromTemplate(menuTemplate);
+      tray.setContextMenu(contextMenu);
     }
   });
 
@@ -882,7 +994,7 @@ try {
    */
   ipcMain.on('activity-notification', (event, arg) => {
     if (tray && menuTemplate.length > 0) {
-      menuTemplate[5].enabled = true;
+      menuTemplate[8].enabled = true;
       contextMenu = Menu.buildFromTemplate(menuTemplate);
       tray.setContextMenu(contextMenu);
     }

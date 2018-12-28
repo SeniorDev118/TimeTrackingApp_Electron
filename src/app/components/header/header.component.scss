@@ -3,5 +3,16 @@
     text-decoration: none;
     color: #fff;
     cursor: default;
+    height: 100%;
+    padding: 8px 0;
+
+    img {
+      height: 100%;
+    }
+  }
+
+  .mat-toolbar {
+    background: transparent;
+    box-shadow: 0 0px 10px rgba(0,0,0,0.1);
   }
 }

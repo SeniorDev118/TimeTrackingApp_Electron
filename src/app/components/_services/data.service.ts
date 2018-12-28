@@ -12,6 +12,8 @@ import { AlertService } from './alert.service';
 export class DataService {
   isTakingScreenShot: boolean; // taking screenshot flag
   isTracking: boolean;
+  isOpenSetting: boolean;
+  isOpenNote: boolean;
   windowWidth: number; // window width
   windowHeight: number; // window height
   activityId: number; // activity id
@@ -51,8 +53,17 @@ export class DataService {
     this.isTakingScreenShot = false;
     this.isTracking = false;
     this.lastEngagementHour = 0;
+    this.isOpenSetting = false;
+    this.isOpenNote = false;
 
     this.getSetting().catch(() => console.log());
+  }
+
+  initData() {
+    this._electronService.ipcRenderer.send('get-all-projects-tasks', {
+      projects: [],
+      tasks: []
+    });
   }
 
   /**
@@ -60,10 +71,6 @@ export class DataService {
    */
   setAcitivityListener() {
     if (this._electronService.isElectron) {
-      this._electronService.ipcRenderer.send('get-all-projects-tasks', {
-        projects: [],
-        tasks: []
-      });
       /**
        * tray icon control
        */
@@ -180,50 +187,56 @@ export class DataService {
       this._electronService.ipcRenderer.send('control-event');
       this._electronService.ipcRenderer.on('control-event-reply', (event, arg) => {
         console.log('control-event-reply: ', arg);
+        console.log(this.isOpenNote, this.isOpenSetting)
         let config;
         switch (arg['type']) {
           case 'note':
-            config = {
-              width: '400px',
-              disableClose: true
-            };
-            const noteDialogRef = this.dialog.open(NoteComponent, config);
-            noteDialogRef.afterClosed().subscribe(result => {
-              if (result['status']) {
-                this.addNote(result['note']).then(() => {
-                }).catch((error) => {
-                  if (error) {
-                    this._alertService.error('Please try again later.');
-                  } else {
-                    this._alertService.error('Empty activity.');
-                  }
-                });
-              }
-            });
+            if (!this.isOpenNote && !this.isOpenSetting) {
+              this.isOpenNote = true;
+              config = {
+                width: '400px',
+                disableClose: true
+              };
+              const noteDialogRef = this.dialog.open(NoteComponent, config);
+              noteDialogRef.afterClosed().subscribe(result => {
+                if (result['status']) {
+                  this.addNote(result['note']).then(() => {
+                    this.isOpenNote = false;
+                  }).catch((error) => {
+                    if (error) {
+                      this._alertService.error('Please try again later.');
+                    } else {
+                      this._alertService.error('Empty activity.');
+                    }
+                  });
+                }
+              });
+            }
             break;
 
           case 'setting':
-            config = {
-              width: '400px',
-              disableClose: true,
-              data: {
-                getDataPromise: this.getSetting()
-              }
-            };
-            const settingDialogRef = this.dialog.open(SettingModalComponent, config);
-            settingDialogRef.afterClosed().subscribe(result => {
-              if (result['status']) {
-                this.updateSetting(result['data']).then(() => {
-                }).catch(() => {
-                  this._alertService.error('Please try again later.');
-                });
-              }
-            });
+            if (!this.isOpenNote && !this.isOpenSetting) {
+              this.isOpenSetting = true;
+              config = {
+                width: '400px',
+                disableClose: true,
+                data: {
+                  getDataPromise: this.getSetting()
+                }
+              };
+              const settingDialogRef = this.dialog.open(SettingModalComponent, config);
+              settingDialogRef.afterClosed().subscribe(result => {
+                if (result['status']) {
+                  this.updateSetting(result['data']).then(() => {
+                    this.isOpenSetting = false;
+                  }).catch(() => {
+                    this._alertService.error('Please try again later.');
+                  });
+                }
+              });
+            }
             break;
 
-          case 'about':
-            this._router.navigate(['/about']);
-            break;
           case 'help':
           this._router.navigate(['/help']);
             break;
@@ -234,6 +247,7 @@ export class DataService {
             if (this.isTracking) {
               this.stopTrack();
             }
+            this.initData();
             localStorage.removeItem('userInformation');
             this._router.navigate(['/login']);
             break;

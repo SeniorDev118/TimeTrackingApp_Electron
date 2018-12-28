@@ -6,6 +6,12 @@ html, body {
     height: 100%;
 }
 
+html {
+    body {
+        color: #343a40;
+    }
+}
+
 a {
     cursor: pointer;
 }

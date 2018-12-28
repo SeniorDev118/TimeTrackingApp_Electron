@@ -42,7 +42,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 
 import { ObjectKeyPipe } from './components/_pipes/object-key.pipe';
-import { AboutComponent } from './components/about/about.component';
 import { HelpComponent } from './components/help/help.component';
 import { CheckComponent } from './components/check/check.component';
 import { NoteComponent } from './components/modals/note/note.component';
@@ -65,7 +64,6 @@ export function HttpLoaderFactory(http: HttpClient) {
     TimeConvertPipe,
     DashboardComponent,
     ObjectKeyPipe,
-    AboutComponent,
     HelpComponent,
     CheckComponent,
     NoteComponent,

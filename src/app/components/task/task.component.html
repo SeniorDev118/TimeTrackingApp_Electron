@@ -21,24 +21,6 @@
         <!-- task description start -->
         <div>{{ task?.description }}</div>
         <!-- task description end -->
-        <div class="d-flex justify-content-between align-items-center">
-          <!-- task duration start -->
-          <div class="mr-4">{{ task?.duration | timeConvert}}</div>
-          <!-- task list end -->
-
-          <!-- task action start -->
-          <div>
-            <a *ngIf="task.timerStatus === 'InActive'; else playEle" (click)="onStartScreenshot(task.id, $event)">
-              <i class="fa fa-play-circle-o" aria-hidden="true"></i>
-            </a>
-            <ng-template #playEle>
-              <a (click)="onStopScreenshot(task.id, $event)">
-                <i class="fa fa-stop-circle-o" aria-hidden="true"></i>
-              </a>
-            </ng-template>
-          </div>
-          <!-- task action end -->
-        </div>
       </li>
     </ul>
   </div>

@@ -21,13 +21,13 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit() {
-    this._dataService.setProject({});
+    // this._dataService.setProject({});
     /**
      * get project list
      */
     this._dataService.getAllProjectsTaks().then((res) => {
       console.log('project task list: ', res);
-      this.projects = res[0];
+      // this.projects = res[0];
       this.isLoad = true;
     }).catch(() => {
       this.projects = [];

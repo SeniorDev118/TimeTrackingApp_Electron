@@ -1,12 +1,11 @@
 <div class="login-container">
   <div class="wrapper">
-    <h2 class="text-center">Login</h2>
     <!-- login form start -->
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <!-- email field start -->
       <div class="form-group">
         <mat-form-field class="full-width">
-          <input type="email" matInput placeholder="Email" formControlName="email" name="email" required>
+          <input type="email" matInput placeholder="Email Address" formControlName="email" name="email" required>
           <mat-error *ngIf="f.email.errors && f.email.errors.required">
             Email is required
           </mat-error>
@@ -30,9 +29,9 @@
       </div>
       <!-- password field end -->
       <!-- login button start -->
-      <div class="form-group mt-4">
+      <div class="action">
         <button [disabled]="loading" mat-raised-button color="primary">
-          <div *ngIf="!loading; else loadSpinnerEle">Login</div>
+          <div *ngIf="!loading; else loadSpinnerEle">LOGIN</div>
           <ng-template #loadSpinnerEle>
             <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
           </ng-template>
