@@ -32,7 +32,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.trackStatusSub = this._dataService.getTrackStatusSubscribe().subscribe(res => {console.log('status: ', res)
+    this.trackStatusSub = this._dataService.getTrackStatusSubscribe().subscribe(res => {
       if (res['type'] === 'status') {
         this.isTracking = res['value'];
       } else if (res['type'] === 'activity') {
