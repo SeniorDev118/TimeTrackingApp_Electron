@@ -6,12 +6,13 @@ import * as moment from 'moment';
 import { CronJob } from 'cron';
 import { notify } from 'node-notifier';
 let win, serve, size, isTrack, keyboardCount, mouseCount, screenshotTimerHandlers, settingData;
-let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, tray, selectProjectEvent, controlEvent;
+let takeScreenshotEvent, createNewActivityEvent, trayControlEvent, tray;
 let hourCronjobHandler, trackingIntervalHandler, engagementIntervalHandler, checkTrackOnHandler;
 let contextMenu, currentTaskId, currentProjectId, selectedTaskId, selectedProjectId, previousTimestamp;
-let idleSettingTimeInMins, lastTrackTimestamp, idleTimeInMilliSecs, lastProjectTimestamp, lastEngagementPer;
 let projectsDetail, selectedProject, menuTemplate;
-let trackingTimeIntervalMins, engagementTimeIntervalMins;
+let engagementControlEvent: any, controlEvent: any, projectCodeControlEvent: any;
+let lastTrackTimestamp: number, lastProjectTimestamp: number, lastEngagementPer: number;
+let trackingTimeIntervalMins: number, engagementTimeIntervalMins: number, idleSettingTimeInMins: number, idleTimeInMilliSecs: number;
 lastTrackTimestamp = 0;
 lastProjectTimestamp = 0;
 idleTimeInMilliSecs = 0;
@@ -49,14 +50,14 @@ function createWindow() {
     // y: 0,
     // width: 1280,
     // height: 720,
-    width: 472,
-    height: 667,
+    width: 468,
+    height: 698,
     center: true,
-    icon: nativeImage.createFromPath(path.join(__dirname, '/icons/256x256.png')),
-    minWidth: 472,
-    minHeight: 667,
-    maxWidth: 472,
-    maxHeight: 667,
+    icon: nativeImage.createFromPath(path.join(__dirname, '/icons/512x512.png')),
+    minWidth: 468,
+    minHeight: 698,
+    maxWidth: 468,
+    maxHeight: 698,
     maximizable: false,
     minimizable: false
     // width: size.width,
@@ -79,7 +80,7 @@ function createWindow() {
   createTrayMenu();
   initData();
 
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -127,9 +128,6 @@ function updateTracks(projectId, taskId, timestamp) {
   createNewActivityEvent.sender.send('create-new-activity-reply', newActivity);
   console.log('---create activity---');
   console.log(newActivity);
-  if (settingData['notify_me_screenshot']) {
-    customNotify('Time Tracker', 'Screenshot taken');
-  }
 }
 
 /**
@@ -234,7 +232,7 @@ function checkTrackOnStatus() {
         checkTrackOnTime(settingData['start_time'], settingData['end_time'])
       ) {
         if (!isTrack) {
-          customNotify('Time Tracker', 'Rimnider: You\'re not tracking time.');
+          customNotify('Time Tracker', 'Reminder: You\'re not tracking time.');
         }
       }
     }, interval);
@@ -319,7 +317,7 @@ function startTimeIntervals() {
     return;
   }
 
-  const trackingIntervalInMiniSecs = parseInt(trackingTimeIntervalMins, 10) * 60 * 1000;
+  const trackingIntervalInMiniSecs = Math.floor(trackingTimeIntervalMins) * 60 * 1000;
   console.log('trackingTimeIntervalMins: ', trackingTimeIntervalMins, trackingIntervalInMiniSecs);
   processTimeTrack(trackingIntervalInMiniSecs);
 
@@ -336,7 +334,7 @@ function startTimeIntervals() {
     return;
   }
 
-  const egIntervalInMiniSecs = parseInt(engagementTimeIntervalMins, 10) * 60 * 1000;
+  const egIntervalInMiniSecs = Math.floor(engagementTimeIntervalMins) * 60 * 1000;
   console.log('engagementTimeIntervalMins: ', engagementTimeIntervalMins, egIntervalInMiniSecs);
 
   engagementIntervalHandler = setInterval(() => {
@@ -368,7 +366,11 @@ function buildProjectInfo() {
     const projectTimer = makeTrayTime(Math.floor(timeInMiniSecs / 1000));
     if (contextMenu && menuTemplate.length > 0) {
       menuTemplate[1].visible = true;
-      menuTemplate[1].label = `${selectedProject['code']} ${projectTimer}`;
+      const result = `${selectedProject['code']} ${projectTimer}`;
+      menuTemplate[1].label = result;
+      if (projectCodeControlEvent) {
+        projectCodeControlEvent.sender.send('project-code', {result: result});
+      }
       contextMenu = Menu.buildFromTemplate(menuTemplate);
       tray.setContextMenu(contextMenu);
     }
@@ -388,7 +390,11 @@ function buildProjectInfo() {
 function updateEngagement(engagementPer) {
   const endHour = moment().format('hh a');
   const startHour = moment().subtract(1, 'hours').format('hh a');
-  return `Engagement(${startHour} - ${endHour}) ${engagementPer}% ${engagementPer - lastEngagementPer}%`;
+  const result = `Engagement(${startHour} - ${endHour}) ${engagementPer}% ${engagementPer - lastEngagementPer}%`;
+  if (engagementControlEvent) {
+    engagementControlEvent.sender.send('engagement-label', {result: result});
+  }
+  return result;
 }
 
 /**
@@ -463,7 +469,7 @@ function createTrayMenu() {
     {
       label: 'Open Dashboard',
       click: () => {
-        shell.openExternal('https://tracklyapp.appup.cloud/trackly/#/430/1587/dashboard');
+        openDashboard();
       }
     },
     {
@@ -482,7 +488,7 @@ function createTrayMenu() {
     {
       label: 'About Track.ly',
       click: () => {
-        shell.openExternal('https://www.track.ly/');
+        aboutTrackly();
       }
     },
     {
@@ -512,8 +518,6 @@ function createTrayMenu() {
       label: 'Sign out',
       click: () => {
         controlEvent.sender.send('control-event-reply', {type: 'signout'});
-        menuTemplate[4].enabled = false;
-        win.focus();
       }
     },
     {
@@ -534,6 +538,30 @@ function createTrayMenu() {
   contextMenu = Menu.buildFromTemplate(menuTemplate);
   tray.setContextMenu(contextMenu);
   tray.setToolTip('Time Tracker');
+}
+
+/**
+ * open dashboard
+ */
+function openDashboard() {
+  shell.openExternal('https://trackly.500apps.com/#/project/430/1587/dashboard');
+}
+
+/**
+ * about track.ly
+ */
+function aboutTrackly() {
+  shell.openExternal('https://www.track.ly');
+}
+
+/**
+ * sign out
+ */
+function signOut() {
+  menuTemplate[4].enabled = false;
+  contextMenu = Menu.buildFromTemplate(menuTemplate);
+  tray.setContextMenu(contextMenu);
+  win.focus();
 }
 
 /**
@@ -663,6 +691,12 @@ function destroyListners() {
     ipcMain.removeAllListeners('tray-icon-control');
     ipcMain.removeAllListeners('select-project');
     ipcMain.removeAllListeners('control-event');
+    ipcMain.removeAllListeners('sign-out');
+    ipcMain.removeAllListeners('quit-app');
+    ipcMain.removeAllListeners('about-trackly');
+    ipcMain.removeAllListeners('open-dashobard');
+    ipcMain.removeAllListeners('engagement-control-event');
+    ipcMain.removeAllListeners('project-code-control-event');
   }
 
   if (trackingIntervalHandler) {
@@ -792,6 +826,21 @@ try {
   });
 
   /**
+   * ipcMain lisner to get engagement control event
+   */
+  ipcMain.on('engagement-control-event', (event, arg) => {
+    engagementControlEvent = event;
+    updateEngagement(0);
+  });
+
+   /**
+   * ipcMain lisner to get project code control event
+   */
+  ipcMain.on('project-code-control-event', (event, arg) => {
+    projectCodeControlEvent = event;
+  });
+
+  /**
    * ipcMain lisner to get control event
    */
   ipcMain.on('control-event', (event, arg) => {
@@ -818,6 +867,27 @@ try {
         tray.setContextMenu(contextMenu);
       }
     }
+  });
+
+  /**
+   * ipcMain lisner to open dashboard
+   */
+  ipcMain.on('open-dashobard', (event, arg) => {
+    openDashboard();
+  });
+
+  /**
+   * ipcMain lisner to about track.ly
+   */
+  ipcMain.on('about-trackly', (event, arg) => {
+    aboutTrackly();
+  });
+
+  /**
+   * ipcMain lisner to signout
+   */
+  ipcMain.on('sign-out', (event, arg) => {
+    signOut();
   });
 
   /**
@@ -911,7 +981,6 @@ try {
    */
   ipcMain.on('select-project', (event, arg) => {
     const current = Date.now();
-    selectProjectEvent = event;
     selectedProject = arg['project'];
 
     if (selectedProject['id']) { // if project is selected
@@ -997,6 +1066,9 @@ try {
       menuTemplate[8].enabled = true;
       contextMenu = Menu.buildFromTemplate(menuTemplate);
       tray.setContextMenu(contextMenu);
+    }
+    if (settingData['notify_me_screenshot']) {
+      customNotify('Time Tracker', 'Screenshot taken');
     }
   });
 

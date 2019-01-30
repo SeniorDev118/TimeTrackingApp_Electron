@@ -102,6 +102,16 @@ label.mat-radio-label {
     }
 }
 
+.mat-menu-panel {
+    max-width: 290px !important;
+}
+
+.mat-menu-item {
+    height: auto !important;
+    line-height: 40px !important;
+    white-space: unset !important;
+}
+
 .setting-modal-container {
     .mat-form-field-infix {
         width: auto;

@@ -29,6 +29,10 @@ export class DataService {
   lastEngagementHour: number; // last engagement hour
 
   private tasksSubject: Subject<any>; // tasks subscription
+  private engagementSubject: Subject<any>; // engagement label subscription
+  private projectCodeSubject: Subject<any>; // project code subscription
+  private trackStatusSubject: Subject<any>; // track status subscription
+  private signOutSubject: Subject<any>; // sign out subscription
 
   constructor(
     private _electronService: ElectronService,
@@ -50,6 +54,10 @@ export class DataService {
     this.currentProject = {};
     this.currentSetting = {};
     this.tasksSubject = new Subject();
+    this.engagementSubject = new Subject();
+    this.projectCodeSubject = new Subject();
+    this.trackStatusSubject = new Subject();
+    this.signOutSubject = new Subject();
     this.isTakingScreenShot = false;
     this.isTracking = false;
     this.lastEngagementHour = 0;
@@ -78,15 +86,9 @@ export class DataService {
       this._electronService.ipcRenderer.on('tray-icon-control-reply', (event, arg) => {
         console.log('tray:', arg);
         if (arg['status'] === 'start') {
-          this._electronService.ipcRenderer.send('start-track', {
-            taskId: arg['taskId'],
-            projectId: arg['projectId']
-          });
+          this.handleTrack('start', arg['projectId'], arg['taskId']);
         } else {
-          this._electronService.ipcRenderer.send('stop-track', {
-            taskId: arg['taskId'],
-            projectId: arg['projectId']
-          });
+          this.handleTrack('stop', arg['projectId'], arg['taskId']);
         }
       });
 
@@ -147,6 +149,10 @@ export class DataService {
         this.selectedProjectId = arg['selectedProjectId'];
         this.selectedTaskId = arg['selectedTaskId'];
         this.isTracking = true;
+        this.trackStatusSubject.next({
+          type: 'status',
+          value: this.isTracking
+        });
 
         if (this.tasks.length > 0) {
           for (let index = 0; index < this.tasks.length; index ++) {
@@ -177,6 +183,10 @@ export class DataService {
         this.selectedProjectId = arg['selectedProjectId'];
         this.selectedTaskId = arg['selectedTaskId'];
         this.isTracking = false;
+        this.trackStatusSubject.next({
+          type: 'status',
+          value: this.isTracking
+        });
 
         this.setTasksSubscribe();
       });
@@ -187,54 +197,13 @@ export class DataService {
       this._electronService.ipcRenderer.send('control-event');
       this._electronService.ipcRenderer.on('control-event-reply', (event, arg) => {
         console.log('control-event-reply: ', arg);
-        console.log(this.isOpenNote, this.isOpenSetting)
-        let config;
         switch (arg['type']) {
           case 'note':
-            if (!this.isOpenNote && !this.isOpenSetting) {
-              this.isOpenNote = true;
-              config = {
-                width: '400px',
-                disableClose: true
-              };
-              const noteDialogRef = this.dialog.open(NoteComponent, config);
-              noteDialogRef.afterClosed().subscribe(result => {
-                if (result['status']) {
-                  this.addNote(result['note']).then(() => {
-                    this.isOpenNote = false;
-                  }).catch((error) => {
-                    if (error) {
-                      this._alertService.error('Please try again later.');
-                    } else {
-                      this._alertService.error('Empty activity.');
-                    }
-                  });
-                }
-              });
-            }
+            this.addANote();
             break;
 
           case 'setting':
-            if (!this.isOpenNote && !this.isOpenSetting) {
-              this.isOpenSetting = true;
-              config = {
-                width: '400px',
-                disableClose: true,
-                data: {
-                  getDataPromise: this.getSetting()
-                }
-              };
-              const settingDialogRef = this.dialog.open(SettingModalComponent, config);
-              settingDialogRef.afterClosed().subscribe(result => {
-                if (result['status']) {
-                  this.updateSetting(result['data']).then(() => {
-                    this.isOpenSetting = false;
-                  }).catch(() => {
-                    this._alertService.error('Please try again later.');
-                  });
-                }
-              });
-            }
+            this.settting();
             break;
 
           case 'help':
@@ -244,18 +213,148 @@ export class DataService {
           this._router.navigate(['/check']);
             break;
           case 'signout':
-            if (this.isTracking) {
-              this.stopTrack();
-            }
-            this.initData();
-            localStorage.removeItem('userInformation');
-            this._router.navigate(['/login']);
+            this.signOut();
             break;
 
           default:
             break;
         }
       });
+
+      /**
+       * engagement event
+       */
+      this._electronService.ipcRenderer.send('engagement-control-event');
+      this._electronService.ipcRenderer.on('engagement-label', (event, arg) => {
+        this.engagementSubject.next(arg['result']);
+      });
+
+      /**
+       * project code event
+       */
+      this._electronService.ipcRenderer.send('project-code-control-event');
+      this._electronService.ipcRenderer.on('project-code', (event, arg) => {
+        this.projectCodeSubject.next(arg['result']);
+      });
+    }
+  }
+
+  /**
+   * handle track to start or stop
+   * @param status start or stop
+   * @param projectId project id
+   * @param taskId task id
+   */
+  handleTrack(status: string, projectId: number, taskId: number) {
+    if (status === 'start') {
+      this._electronService.ipcRenderer.send('start-track', {
+        projectId: projectId,
+        taskId: taskId
+      });
+    } else {
+      this._electronService.ipcRenderer.send('stop-track', {
+        projectId: projectId,
+        taskId: taskId
+      });
+    }
+  }
+
+  /**
+   * add a note
+   */
+  addANote() {
+    if (!this.isOpenNote && !this.isOpenSetting) {
+      this.isOpenNote = true;
+      const config = {
+        width: '400px',
+        disableClose: true
+      };
+      const noteDialogRef = this.dialog.open(NoteComponent, config);
+      noteDialogRef.afterClosed().subscribe(result => {
+        if (result['status']) {
+          this.addNote(result['note']).then(() => {
+            this.isOpenNote = false;
+          }).catch((error) => {
+            if (error) {
+              this._alertService.error('Please try again later.');
+            } else if (error === false) {
+            } else {
+              this._alertService.error('Empty activity.');
+            }
+          });
+        }
+      });
+    }
+  }
+
+  /**
+   * setting
+   */
+  settting() {
+    if (!this.isOpenNote && !this.isOpenSetting && localStorage.getItem('userInformation')) {
+      this.isOpenSetting = true;
+      const config = {
+        width: '400px',
+        disableClose: true,
+        data: {
+          getDataPromise: this.getSetting()
+        }
+      };
+      const settingDialogRef = this.dialog.open(SettingModalComponent, config);
+      settingDialogRef.afterClosed().subscribe(result => {
+        if (result['status']) {
+          this.updateSetting(result['data']).then(() => {
+            this.isOpenSetting = false;
+          }).catch(() => {
+            this._alertService.error('Please try again later.');
+          });
+        } else {
+          this.isOpenSetting = false;
+        }
+      });
+    }
+  }
+
+  /**
+   * open dashboard
+   */
+  openDashboard() {
+    this._electronService.ipcRenderer.send('open-dashobard');
+  }
+
+  /**
+   * about track.ly
+   */
+  aboutTrackly() {
+    this._electronService.ipcRenderer.send('about-trackly');
+  }
+
+  /**
+   * sign out
+   */
+  signOut() {
+    if (this.isTracking) {
+      this.stopTrack();
+    }
+
+    this.initData();
+    localStorage.removeItem('userInformation');
+    this._router.navigate(['/login']);
+    this._electronService.ipcRenderer.send('sign-out');
+    this.signOutSubject.next(true);
+  }
+
+  /**
+   * quit app
+   */
+  quitApp() {
+    if (this._electronService.isElectron) {
+      this.isTracking = false;
+      this.trackStatusSubject.next({
+        type: 'status',
+        value: this.isTracking
+      });
+      this._electronService.ipcRenderer.send('quit-app');
     }
   }
 
@@ -265,6 +364,10 @@ export class DataService {
   stopTrack() {
     if (this._electronService.isElectron) {
       this.isTracking = false;
+      this.trackStatusSubject.next({
+        type: 'status',
+        value: this.isTracking
+      });
 
       this._electronService.ipcRenderer.send('stop-track', {
         taskId: this.currentTaskId,
@@ -296,6 +399,9 @@ export class DataService {
         this.setTasksSubscribe();
       }
     }).catch((error) => {
+      if (error === false) {
+        this.signOut();
+      }
       this.setTasksSubscribe();
     });
   }
@@ -312,6 +418,9 @@ export class DataService {
           return resolve([]);
         }
       }).catch((error) => {
+        if (error === false) {
+          this.signOut();
+        }
         console.log('Error to get project list', error);
         return reject(error);
       });
@@ -335,6 +444,9 @@ export class DataService {
               resolve([]);
             }
           }).catch((error) => {
+            if (error === false) {
+              this.signOut();
+            }
             reject(error);
           });
         } else {
@@ -399,6 +511,34 @@ export class DataService {
   // }
 
   /**
+   * raise sign out subscribe
+   */
+  getSignOutSubscribe(): Observable<any> {
+    return this.signOutSubject.asObservable();
+  }
+
+  /**
+   * raise track status subscribe
+   */
+  getTrackStatusSubscribe(): Observable<any> {
+    return this.trackStatusSubject.asObservable();
+  }
+
+  /**
+   * raise project code subscribe
+   */
+  getProjectCodeSubscribe(): Observable<any> {
+    return this.projectCodeSubject.asObservable();
+  }
+
+  /**
+   * raise engagement subscribe
+   */
+  getEnagementSubscribe(): Observable<any> {
+    return this.engagementSubject.asObservable();
+  }
+
+  /**
    * raise tasks subscribe
    */
   getTasksSubscribe(): Observable<any> {
@@ -435,6 +575,10 @@ export class DataService {
    * @param nCount: count
    */
   postActivity(activity: Object, nCount: number = 0) {
+    if (!this.isTracking) {
+      return;
+    }
+
     activity['screenshot_urls'] = this.screenshotUrls;
     console.log('new activity: ', activity);
     this._httpService.postCall(
@@ -444,15 +588,27 @@ export class DataService {
       console.log('Activity creation is successful!');
       if (res && res['data'] && res['data']['GENERATED_KEY']) {
         this.activityId = res['data']['GENERATED_KEY'];
+        this.trackStatusSubject.next({
+          type: 'activity',
+          value: true
+        });
       } else {
         this.activityId = -1;
+        this.trackStatusSubject.next({
+          type: 'activity',
+          value: false
+        });
       }
+
       this._electronService.ipcRenderer.send('activity-notification', {
         activityId: this.activityId
       });
       this.clearData();
     }).catch((err) => {
-      console.log('Activity creation error', err);
+      console.log('Activity creation error: ', err);
+      if (err === false) {
+        this.signOut();
+      }
       if (err) {
         if (nCount < 20) {
           nCount ++;
@@ -496,6 +652,9 @@ export class DataService {
       this._httpService.uploadFile(preUrl, blob, 'image/png').then((res) => {
         console.log('Uploading screenshot is successful!: ', url);
       }).catch((err) => {
+        if (err === false) {
+          this.signOut();
+        }
         console.log(err);
       });
     });
@@ -519,6 +678,9 @@ export class DataService {
           }
         }).catch((err) => {
           console.log(err);
+          if (err === false) {
+            this.signOut();
+          }
           return reject(err);
         });
     });
@@ -614,7 +776,7 @@ export class DataService {
     return new Promise((resolve, reject) => {
       if (this.activityId >= 0) {
         this._httpService.postCall(
-          'trackly/note/activity_note',
+          'create-note/activity_note',
           {
             activity_id: this.activityId,
             note: note
@@ -623,7 +785,10 @@ export class DataService {
           console.log('Adding a note is successful!');
           resolve();
         }).catch((err) => {
-          console.log('Add a note error', err);
+          if (err === false) {
+            this.signOut();
+          }
+          console.log('Add a note error:', err);
           reject(err);
         });
       } else {
@@ -651,6 +816,9 @@ export class DataService {
         });
       }).catch((error) => {
         console.log('Error to get project list', error);
+        if (error === false) {
+          this.signOut();
+        }
         this.currentSetting = {};
         this._electronService.ipcRenderer.send('update-setting', {
           setting: this.currentSetting
@@ -671,6 +839,9 @@ export class DataService {
         this.getSetting().catch(() => console.log());
         resolve();
       }).catch((error) => {
+        if (error === false) {
+          this.signOut();
+        }
         reject(error);
       });
     });

@@ -1,13 +1,11 @@
 import { Injectable } from '@angular/core';
 import * as axios from 'axios';
 import { AppConfig } from '../../../environments/environment';
-import { Router } from '@angular/router';
 
 @Injectable()
 export class HttpService {
 
   constructor(
-    private router: Router
   ) { }
 
   /**
@@ -89,20 +87,10 @@ export class HttpService {
     console.log(error);
     let rejectResponse = false;
     if (!error.response || error.response && error.response.status === 401) {
-      this.handleUnAuthetication();
       rejectResponse = false;
     } else {
       rejectResponse = true;
     }
     return rejectResponse;
-  }
-
-  /**
-   * handle un-authentication
-   * @param statusCode: status code
-   */
-  handleUnAuthetication() {
-    localStorage.removeItem('userInformation');
-    this.router.navigate(['/login']);
   }
 }

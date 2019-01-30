@@ -47,6 +47,7 @@ import { CheckComponent } from './components/check/check.component';
 import { NoteComponent } from './components/modals/note/note.component';
 import { SettingModalComponent } from './components/modals/setting-modal/setting-modal.component';
 import { HeaderComponent } from './components/header/header.component';
+import { MatDividerModule } from '@angular/material';
 
 
 // AoT requires an exported function for factories
@@ -95,6 +96,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     MatRadioModule,
     MatCheckboxModule,
     MatSelectModule,
+    MatDividerModule,
     NgxMaterialTimepickerModule.forRoot()
   ],
   providers: [

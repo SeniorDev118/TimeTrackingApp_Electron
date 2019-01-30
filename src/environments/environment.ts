@@ -1,5 +1,6 @@
 export const AppConfig = {
   production: false,
   environment: 'LOCAL',
-  apiUrl: 'https://tracklyapp.appup.cloud'
+  apiUrl: 'https://trackly.500apps.com'
+  // apiUrl: 'https://tracklyapp.appup.cloud'
 };

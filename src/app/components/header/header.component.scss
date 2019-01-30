@@ -1,10 +1,8 @@
 :host {
-  a {
-    text-decoration: none;
-    color: #fff;
-    cursor: default;
+  .logo-area {
     height: 100%;
-    padding: 8px 0;
+    padding: 10px 0;
+    cursor: default;
 
     img {
       height: 100%;
@@ -14,5 +12,13 @@
   .mat-toolbar {
     background: transparent;
     box-shadow: 0 0px 10px rgba(0,0,0,0.1);
+  }
+
+  .spacer {
+    flex: 1 1 auto;
+  }
+
+  .dashboard-item {
+    min-width: 180px;
   }
 }

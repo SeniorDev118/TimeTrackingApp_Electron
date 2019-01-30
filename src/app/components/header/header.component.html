@@ -1,5 +1,88 @@
 <mat-toolbar>
-  <a [routerLink]="['/dashboard']">
-    <img src="https://www.track.ly/image/trakly_logo_svg_1544177489170-128.svg" />
+  <!-- Logo start -->
+  <a class="logo-area" [routerLink]="['/dashboard']">
+    <img src="https://www.track.ly/image/trakly_logo_svg_1544177489170-128x50.svg" />
   </a>
+  <!-- Logo start -->
+
+  <div class="spacer"></div>
+
+  <button color="primary" mat-raised-button [matMenuTriggerFor]="mainMenu" (click)="onOpenMenu()">Menu</button>
+
+  <!-- Main menu start -->
+  <mat-menu #mainMenu="matMenu">
+    <div mat-menu-item *ngIf="engagement">{{ engagement }}</div>
+    <mat-divider *ngIf="engagement"></mat-divider>
+    <div mat-menu-item *ngIf="selectedProjectId !== -1 && projectCode">{{ projectCode }}</div>
+    <mat-divider *ngIf="selectedProjectId !== -1 && projectCode"></mat-divider>
+    <!-- Start button start -->
+    <button mat-menu-item (click)="onStart()" *ngIf="!isTracking" [disabled]="selectedProjectId === -1">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>Timer is paused</div>
+        <div>
+          <img src="assets/images/play.png" />
+        </div>
+      </div>
+    </button>
+    <!-- Start button end -->
+    <!-- Stop button start -->
+    <button mat-menu-item (click)="onStop()" *ngIf="isTracking">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>Timer is running</div>
+        <div>
+          <img src="assets/images/pause.png" />
+        </div>
+      </div>
+    </button>
+    <!-- Stop button end -->
+    <mat-divider></mat-divider>
+    <!-- Switch Projects start -->
+    <button mat-menu-item [matMenuTriggerFor]="switchProjectMenu" *ngIf="isGetProjects; else emptyProjectsMenu">Switch Projects</button>
+    <ng-template #emptyProjectsMenu>
+      <button mat-menu-item>Switch Projects</button>
+    </ng-template>
+    <mat-divider></mat-divider>
+    <!-- Switch Projects end -->
+    <button mat-menu-item (click)="onAddANote()" [disabled]="!isActivity">Add a note</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onOpenDashboard()" class="dashboard-item">Open Dashboard</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onSetting()">Settings</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onAbout()">About Track.ly</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onHelp()">Help</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onCheckUpdate()">Check for updates</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onSignOut()">Sign out</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onQuit()">Quit tracker</button>
+    <mat-divider></mat-divider>
+  </mat-menu>
+  <!-- Main menu end -->
+
+  <!-- Switch Projects menu start -->
+  <mat-menu #switchProjectMenu="matMenu">
+    <ng-container *ngFor="let projectKey of objectKeys(projects)">
+      <button
+        mat-menu-item
+        [matMenuTriggerFor]="sub_menu"
+        (click)="onClickProject(projectKey)"
+        *ngIf="(projects[projectKey]['tasks'] && projects[projectKey]['tasks'].length > 0); else emptyProjectMenu">
+        {{ projects[projectKey]['name'] }}
+      </button>
+      <ng-template #emptyProjectMenu>
+        <button
+          mat-menu-item
+          (click)="onClickProject(projectKey)">
+          {{ projects[projectKey]['name'] }}
+        </button>
+      </ng-template>
+      <mat-menu #sub_menu="matMenu">
+        <button mat-menu-item *ngFor="let task of projects[projectKey]['tasks']"  (click)="onClickTask(projectKey, task['id'])">{{ task['name'] }}</button>
+      </mat-menu>
+    </ng-container>
+  </mat-menu>
+  <!-- Switch Projects menu end -->
 </mat-toolbar>

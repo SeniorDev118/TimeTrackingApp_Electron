@@ -68,6 +68,8 @@ export class LoginComponent implements OnInit {
       console.log(res);
       if (res['data']) {
         localStorage.setItem('userInformation', JSON.stringify(res['data']));
+        const packageVersion = require('../../../../package.json').version;
+        localStorage.setItem('app_version', packageVersion);
         this.router.navigate([this.returnUrl]);
       }
     }).catch((err) => {
